@@ -1,0 +1,32 @@
+import { describe, it, expect } from "vitest";
+import { templates } from "@/lib/draft/templates";
+import { followUpTemplates } from "@/lib/draft/follow-up-templates";
+
+const BANNED = [
+  /\bleverage\b/i, /\bseamlessly\b/i, /\brobust\b/i, /\belevate\b/i, /\bempower\b/i,
+  /\bfoster\b/i, /\bunlock the potential\b/i, /\bharness the power\b/i,
+  /\brevolutionary\b/i, /\bgame[- ]changing\b/i, /\bcutting[- ]edge\b/i,
+  /\bnext[- ]level\b/i, /\bunprecedented\b/i, /\bbest[- ]in[- ]class\b/i,
+  /\bvibrant community\b/i, /\bbuilt with passion\b/i, /\bmade with love\b/i,
+  /\bbuilders and makers\b/i,
+  /it'?s worth noting that/i, /here'?s the thing/i,
+  /let'?s dive in/i, /let'?s unpack/i, /the truth is/i,
+  /here'?s what most founders get wrong/i, /the thing nobody tells you/i,
+  /the launch journey/i, /the startup landscape/i, /navigating the complexities/i,
+];
+
+const STACCATO_STACK = /(?:^|>)\s*([A-Z][a-z]+\.\s+){3,}\s*(?:<|$)/m;
+
+describe("voice-profile compliance", () => {
+  for (const t of [...templates, ...followUpTemplates]) {
+    it(`${t.key} contains no banned phrases`, () => {
+      const blob = `${t.subject}\n${t.bodyHtml}`;
+      for (const re of BANNED) expect(blob, `matched ${re}`).not.toMatch(re);
+      expect(blob, "staccato fragment stack").not.toMatch(STACCATO_STACK);
+    });
+  }
+  it("template keys are unique", () => {
+    const all = [...templates, ...followUpTemplates].map((t) => t.key);
+    expect(new Set(all).size).toBe(all.length);
+  });
+});
