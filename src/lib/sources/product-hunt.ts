@@ -89,7 +89,8 @@ const QUERY = `
   }
 `;
 
-const MAX_PAGES = 20; // safety cap — handles up to 400 PH posts/24h
+const MAX_PAGES = 5;            // 5 pages × 20 = up to 100 PH posts/run
+const PAGE_DELAY_MS = 1500;     // be nice to PH between paginated requests
 
 type PhEdge = {
   node: {
@@ -118,11 +119,16 @@ export class ProductHuntSource implements LaunchSource {
     const edges: PhEdge[] = [];
     let after: string | null = null;
     for (let page = 0; page < MAX_PAGES; page++) {
+      if (page > 0) await new Promise((r) => setTimeout(r, PAGE_DELAY_MS));
       const { statusCode, body } = await request(PH_ENDPOINT, {
         method: "POST",
         headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
         body: JSON.stringify({ query: QUERY, variables: { postedAfter: date.toISOString(), after } }),
       });
+      if (statusCode === 429) {
+        // Rate limited — return what we have so far rather than crash
+        break;
+      }
       if (statusCode !== 200) throw new Error(`PH API ${statusCode}`);
       const payload = (await body.json()) as PhResponse;
       const pageEdges = payload.data?.posts?.edges ?? [];

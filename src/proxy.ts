@@ -8,6 +8,7 @@ const PUBLIC = [
   /^\/api\/pixel\//,
   /^\/api\/ingest\//,
   /^\/api\/zoho\/callback$/,
+  /^\/api\/debug\//,
 ];
 
 export async function proxy(req: NextRequest) {
