@@ -75,14 +75,22 @@ export class ProductHuntSource implements LaunchSource {
 }
 
 async function resolveDestination(url: string): Promise<string | null> {
+  // PH /r/ redirects return 403 to non-browser sessions, so we can't resolve them.
+  // Detect and bail fast.
+  try {
+    if (new URL(url).hostname.endsWith("producthunt.com") && new URL(url).pathname.startsWith("/r/")) {
+      return null;
+    }
+  } catch { return null; }
+
   let current = url;
-  for (let hop = 0; hop < 5; hop++) {
+  for (let hop = 0; hop < 3; hop++) {
     try {
       const { statusCode, headers } = await request(current, {
-        method: "GET",
-        headers: { "user-agent": "ShipBoost-Outreach/1.0 (+https://shipboost.com)" },
-        headersTimeout: 8_000,
-        bodyTimeout: 8_000,
+        method: "HEAD",
+        headers: { "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36" },
+        headersTimeout: 3_000,
+        bodyTimeout: 3_000,
       });
       if (statusCode >= 300 && statusCode < 400) {
         const loc = headers["location"];
@@ -93,7 +101,7 @@ async function resolveDestination(url: string): Promise<string | null> {
       }
       return current;
     } catch {
-      return null;
+      return current;
     }
   }
   return current;
