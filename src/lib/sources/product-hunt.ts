@@ -3,11 +3,78 @@ import { canonicalizeUrl } from "@/lib/scrape/fetch-html";
 import type { LaunchSource, RawLaunch } from "./types";
 
 const PH_ENDPOINT = "https://api.producthunt.com/v2/api/graphql";
+
+// Positive allowlist: a post must have at least one of these topics to be considered SaaS-relevant.
+const ALLOW_TOPICS = new Set([
+  "saas",
+  "developer-tools",
+  "productivity",
+  "marketing",
+  "analytics",
+  "design-tools",
+  "no-code",
+  "web-app",
+  "api",
+  "automation",
+  "workflow-automation",
+  "crm",
+  "email",
+  "project-management",
+  "task-management",
+  "customer-support",
+  "customer-communication",
+  "collaboration",
+  "remote-work",
+  "data-visualization",
+  "artificial-intelligence",
+  "machine-learning",
+  "open-source",
+  "developer-utilities",
+  "tech",
+  "saas-tools",
+  "sales",
+  "growth-hacking",
+  "user-experience",
+  "user-research",
+  "writing-tools",
+  "video-tools",
+  "social-media",
+  "seo",
+  "ecommerce", // ecommerce TOOLS, paired with denylist below to exclude actual stores
+  "education-tools",
+  "fintech",
+  "developer-experience",
+  "monitoring",
+  "security",
+  "ai",
+]);
+
+// Deny topics: even if an allow-topic matches, these always disqualify.
 const DENY_TOPICS = new Set([
   "chrome-extensions", "firefox-extensions", "browser-extensions",
-  "ios", "android", "physical-products", "books", "podcasts",
-  "notion-templates", "figma-plugins",
+  "ios", "android", "mobile-apps", "physical-products", "books",
+  "podcasts", "newsletters", "notion-templates", "figma-plugins",
+  "merch", "hardware", "toys-games", "food-drink", "fashion", "music",
+  "pets", "travel", "art", "fitness", "health-and-fitness",
+  "courses", "education", // info products, not SaaS
+  "agencies", "freelance", "consulting",
+  "investing", "crypto", "nfts",
+  "games", "gaming",
 ]);
+
+// Tagline keyword denylist: catches launches the topic system mislabels.
+// Matched word-boundary, case-insensitive, against name + tagline.
+const TAGLINE_DENY = [
+  /\b(buy|shop|store|order)\b/i,
+  /\b(book|ebook|course|guide|template|kit)\s+(on|for|to)\b/i,
+  /\bnewsletter\b/i,
+  /\b(agency|consulting|consultancy|freelancer)\b/i,
+  /\b(handmade|handcrafted|artisan)\b/i,
+  /\b(apparel|clothing|t-shirt|hoodie|merch)\b/i,
+  /\b(NFT|crypto wallet|token sale|ICO)\b/i,
+  /\bphysical (product|good)/i,
+];
+
 const MIN_VOTES = 0;
 
 const QUERY = `
@@ -50,7 +117,15 @@ export class ProductHuntSource implements LaunchSource {
       if (!node.website) continue;
       if (node.votesCount < MIN_VOTES) continue;
       const topics = node.topics.edges.map((t) => t.node.slug);
+
+      // Must hit at least one allowed topic
+      if (!topics.some((t) => ALLOW_TOPICS.has(t))) continue;
+      // Any denied topic disqualifies
       if (topics.some((t) => DENY_TOPICS.has(t))) continue;
+
+      // Tagline keyword sanity check
+      const haystack = `${node.name} ${node.tagline ?? ""}`;
+      if (TAGLINE_DENY.some((re) => re.test(haystack))) continue;
 
       let website: string;
       try {
