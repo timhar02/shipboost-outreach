@@ -8,7 +8,7 @@ const DENY_TOPICS = new Set([
   "ios", "android", "physical-products", "books", "podcasts",
   "notion-templates", "figma-plugins",
 ]);
-const MIN_VOTES = 5;
+const MIN_VOTES = 0;
 
 const QUERY = `
   query Posts($postedAfter: DateTime!) {
@@ -54,12 +54,15 @@ export class ProductHuntSource implements LaunchSource {
 
       let website: string;
       try {
-        // Strip PH referral param before canonicalising
-        const raw = new URL(node.website);
+        const resolved = await resolveDestination(node.website);
+        if (!resolved) continue;
+        const raw = new URL(resolved);
         raw.searchParams.delete("ref");
+        for (const k of [...raw.searchParams.keys()]) if (k.startsWith("utm_")) raw.searchParams.delete(k);
         website = canonicalizeUrl(raw.toString());
       } catch { continue; }
       const host = new URL(website).hostname;
+      if (host.endsWith("producthunt.com")) continue;
       if (host.endsWith("chrome.google.com") || host.endsWith("apps.apple.com") || host.endsWith("play.google.com")) continue;
 
       out.push({
@@ -69,4 +72,29 @@ export class ProductHuntSource implements LaunchSource {
     }
     return out;
   }
+}
+
+async function resolveDestination(url: string): Promise<string | null> {
+  let current = url;
+  for (let hop = 0; hop < 5; hop++) {
+    try {
+      const { statusCode, headers } = await request(current, {
+        method: "GET",
+        headers: { "user-agent": "ShipBoost-Outreach/1.0 (+https://shipboost.com)" },
+        headersTimeout: 8_000,
+        bodyTimeout: 8_000,
+      });
+      if (statusCode >= 300 && statusCode < 400) {
+        const loc = headers["location"];
+        const next = Array.isArray(loc) ? loc[0] : loc;
+        if (!next) return current;
+        current = new URL(next, current).toString();
+        continue;
+      }
+      return current;
+    } catch {
+      return null;
+    }
+  }
+  return current;
 }
