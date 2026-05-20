@@ -13,6 +13,12 @@ const BANNED = [
   /let'?s dive in/i, /let'?s unpack/i, /the truth is/i,
   /here'?s what most founders get wrong/i, /the thing nobody tells you/i,
   /the launch journey/i, /the startup landscape/i, /navigating the complexities/i,
+  // AI-writing tells
+  /\bdelve\b/i, /\bdelving\b/i, /\bin essence\b/i, /\bultimately\b/i,
+  /\bfundamentally\b/i, /\bimagine if\b/i, /\ba stepping stone\b/i,
+  /\btapestry\b/i, /\brealm of\b/i, /\bmyriad\b/i,
+  // em-dash (U+2014) and en-dash (U+2013) as content; common AI tells
+  /—/, /–/,
 ];
 
 const STACCATO_STACK = /(?:^|>)\s*([A-Z][a-z]+\.\s+){3,}\s*(?:<|$)/m;
