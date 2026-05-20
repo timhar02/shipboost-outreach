@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SourceKind {
+  PRODUCT_HUNT
+  PEERPUSH
+  PEERLIST
+  UNEED
+  FOUNDRLIST
+  SCROLLLAUNCH
+}
+
+enum DraftStatus {
+  PENDING_REVIEW
+  SENT
+  SKIPPED
+  FAILED
+}
+
+enum EventKind {
+  OPEN
+  REPLY
+  FOLLOWUP_SENT
+}
+
+enum Direction {
+  OUT
+  IN
+}
+
+enum DiscoveredFrom {
+  CONTACT_PAGE
+  ABOUT_PAGE
+  HOMEPAGE_FOOTER
+  MAILTO_LINK
+  META_TAG
+}
+
+model Source {
+  id       String     @id @default(cuid())
+  kind     SourceKind @unique
+  name     String
+  enabled  Boolean    @default(true)
+  launches Launch[]
+}
+
+model Launch {
+  id         String   @id @default(cuid())
+  source     Source   @relation(fields: [sourceId], references: [id])
+  sourceId   String
+  externalId String
+  name       String
+  tagline    String?
+  url        String
+  launchedAt DateTime
+  raw        Json
+  fetchedAt  DateTime @default(now())
+  contact    Contact?
+
+  @@unique([sourceId, externalId])
+}
+
+model Contact {
+  id             String          @id @default(cuid())
+  email          String          @unique
+  domain         String          @unique
+  name           String?
+  launch         Launch          @relation(fields: [launchId], references: [id])
+  launchId       String          @unique
+  discoveredFrom DiscoveredFrom
+  drafts         OutreachDraft[]
+  createdAt      DateTime        @default(now())
+}
+
+model OutreachDraft {
+  id            String          @id @default(cuid())
+  contact       Contact         @relation(fields: [contactId], references: [id])
+  contactId     String
+  parentDraft   OutreachDraft?  @relation("FollowUp", fields: [parentDraftId], references: [id])
+  parentDraftId String?
+  followUps     OutreachDraft[] @relation("FollowUp")
+  templateKey   String
+  subject       String
+  body          String
+  bodyText      String
+  status        DraftStatus     @default(PENDING_REVIEW)
+  createdAt     DateTime        @default(now())
+  sentAt        DateTime?
+  events        OutreachEvent[]
+  messages      EmailMessage[]
+}
+
+model OutreachEvent {
+  id        String        @id @default(cuid())
+  draft     OutreachDraft @relation(fields: [draftId], references: [id])
+  draftId   String
+  kind      EventKind
+  payload   Json
+  createdAt DateTime      @default(now())
+}
+
+model EmailMessage {
+  id            String        @id @default(cuid())
+  draft         OutreachDraft @relation(fields: [draftId], references: [id])
+  draftId       String
+  zohoMessageId String        @unique
+  direction     Direction
+  subject       String
+  snippet       String
+  headers       Json
+  receivedAt    DateTime      @default(now())
+}
+
+model ZohoCredential {
+  id           String   @id @default(cuid())
+  accountId    String
+  refreshToken String
+  scope        String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
