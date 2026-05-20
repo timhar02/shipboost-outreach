@@ -10,6 +10,6 @@ export type RawLaunch = {
 };
 
 export interface LaunchSource {
-  kind: "PRODUCT_HUNT" | "PEERPUSH" | "PEERLIST" | "UNEED" | "FOUNDRLIST" | "SCROLLLAUNCH";
+  kind: "PRODUCT_HUNT" | "PEERPUSH" | "PEERLIST" | "UNEED" | "FOUNDRLIST" | "SCROLLLAUNCH" | "HACKER_NEWS";
   fetchSince(date: Date): Promise<RawLaunch[]>;
 }

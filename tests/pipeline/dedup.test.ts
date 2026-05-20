@@ -13,6 +13,13 @@ vi.mock("@/lib/sources/peerpush", () => ({
   },
 }));
 
+vi.mock("@/lib/sources/hacker-news", () => ({
+  HackerNewsSource: class {
+    kind = "HACKER_NEWS" as const;
+    async fetchSince() { return []; }
+  },
+}));
+
 vi.mock("@/lib/scrape/extract-email", () => ({
   extractEmail: vi.fn().mockResolvedValue({ email: "sarah@trywavefly.com", name: "Sarah", source: "ABOUT_PAGE" }),
 }));
