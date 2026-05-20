@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@/lib/sources/product-hunt", () => ({
-  ProductHuntSource: class {
-    kind = "PRODUCT_HUNT" as const;
+vi.mock("@/lib/sources/peerpush", () => ({
+  PeerPushSource: class {
+    kind = "PEERPUSH" as const;
     async fetchSince() {
       return [{
         externalId: "p1", name: "Wavefly", tagline: "quiet launches",
         url: "https://trywavefly.com/", launchedAt: new Date("2026-05-19T16:00:00Z"),
-        votesCount: 12, topics: ["saas"], raw: {},
+        votesCount: 12, topics: ["SaaS Tools"], raw: {},
       }];
     }
   },

@@ -1,5 +1,5 @@
 import { prisma } from "@/server/db/client";
-import { ProductHuntSource } from "@/lib/sources/product-hunt";
+import { PeerPushSource } from "@/lib/sources/peerpush";
 import { extractEmail } from "@/lib/scrape/extract-email";
 import { jitter } from "@/lib/scrape/fetch-html";
 import { templates } from "@/lib/draft/templates";
@@ -12,13 +12,13 @@ export type FetchResult = { launchesSeen: number; emailsFound: number; draftsCre
 
 export async function runFetchAndQueue(): Promise<FetchResult> {
   const source = await prisma.source.upsert({
-    where: { kind: "PRODUCT_HUNT" },
-    create: { kind: "PRODUCT_HUNT", name: "Product Hunt" },
+    where: { kind: "PEERPUSH" },
+    create: { kind: "PEERPUSH", name: "PeerPush" },
     update: {},
   });
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const launches = await new ProductHuntSource().fetchSince(since);
+  const launches = await new PeerPushSource().fetchSince(since);
 
   const result: FetchResult = { launchesSeen: launches.length, emailsFound: 0, draftsCreated: 0, skipped: 0 };
   const senderFirstName = process.env.SENDER_FIRST_NAME ?? "Tim";
