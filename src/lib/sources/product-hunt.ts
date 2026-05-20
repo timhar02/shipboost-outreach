@@ -78,21 +78,33 @@ const TAGLINE_DENY = [
 const MIN_VOTES = 0;
 
 const QUERY = `
-  query Posts($postedAfter: DateTime!) {
-    posts(postedAfter: $postedAfter, order: NEWEST, first: 50) {
+  query Posts($postedAfter: DateTime!, $after: String) {
+    posts(postedAfter: $postedAfter, order: NEWEST, first: 20, after: $after) {
       edges { node {
         id name tagline url website votesCount createdAt
         topics(first: 10) { edges { node { slug } } }
       } }
+      pageInfo { hasNextPage endCursor }
     }
   }
 `;
+
+const MAX_PAGES = 20; // safety cap — handles up to 400 PH posts/24h
 
 type PhEdge = {
   node: {
     id: string; name: string; tagline?: string; url: string; website?: string;
     votesCount: number; createdAt: string;
     topics: { edges: { node: { slug: string } }[] };
+  };
+};
+
+type PhResponse = {
+  data?: {
+    posts?: {
+      edges?: PhEdge[];
+      pageInfo?: { hasNextPage: boolean; endCursor: string | null };
+    };
   };
 };
 
@@ -103,14 +115,22 @@ export class ProductHuntSource implements LaunchSource {
     const token = process.env.PRODUCT_HUNT_TOKEN;
     if (!token) throw new Error("PRODUCT_HUNT_TOKEN missing");
 
-    const { statusCode, body } = await request(PH_ENDPOINT, {
-      method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-      body: JSON.stringify({ query: QUERY, variables: { postedAfter: date.toISOString() } }),
-    });
-    if (statusCode !== 200) throw new Error(`PH API ${statusCode}`);
-    const payload = (await body.json()) as { data?: { posts?: { edges?: PhEdge[] } } };
-    const edges = payload.data?.posts?.edges ?? [];
+    const edges: PhEdge[] = [];
+    let after: string | null = null;
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const { statusCode, body } = await request(PH_ENDPOINT, {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify({ query: QUERY, variables: { postedAfter: date.toISOString(), after } }),
+      });
+      if (statusCode !== 200) throw new Error(`PH API ${statusCode}`);
+      const payload = (await body.json()) as PhResponse;
+      const pageEdges = payload.data?.posts?.edges ?? [];
+      edges.push(...pageEdges);
+      const info = payload.data?.posts?.pageInfo;
+      if (!info?.hasNextPage || !info.endCursor) break;
+      after = info.endCursor;
+    }
 
     const out: RawLaunch[] = [];
     for (const { node } of edges) {
