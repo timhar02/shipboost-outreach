@@ -1,8 +1,11 @@
-import { request } from "undici";
+import { Agent, interceptors, request } from "undici";
 import robotsParser from "robots-parser";
 
 const UA = "ShipBoost-Outreach/1.0 (+https://shipboost.com)";
 const TIMEOUT_MS = 10_000;
+
+/** Agent with redirect following (up to 5 hops) baked in. */
+const redirectAgent = new Agent().compose(interceptors.redirect({ maxRedirections: 5 }));
 
 export function canonicalizeUrl(input: string): string {
   const u = new URL(input);
@@ -23,7 +26,7 @@ export async function fetchHtml(url: string): Promise<string | null> {
       headers: { "user-agent": UA, "accept-language": "en-US,en;q=0.9", accept: "text/html,*/*" },
       headersTimeout: TIMEOUT_MS,
       bodyTimeout: TIMEOUT_MS,
-      maxRedirections: 5,
+      dispatcher: redirectAgent,
     });
     if (statusCode < 200 || statusCode >= 300) return null;
     const ct = String(headers["content-type"] || "");
