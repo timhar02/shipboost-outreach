@@ -40,9 +40,10 @@ describe("extractEmail", () => {
 
   it("falls back to /about and extracts founder name", async () => {
     vi.mocked(fetchHtml)
-      .mockResolvedValueOnce("<html><body>nothing</body></html>")
-      .mockResolvedValueOnce("<html><body>still nothing</body></html>")
-      .mockResolvedValueOnce(fx("about-page"));
+      .mockResolvedValueOnce("<html><body>nothing</body></html>")           // homepage
+      .mockResolvedValueOnce("<html><body>still nothing</body></html>")     // /contact
+      .mockResolvedValueOnce("<html><body>still nothing</body></html>")     // /contact-us
+      .mockResolvedValueOnce(fx("about-page"));                              // /about
     const r = await extractEmail("https://acme.io");
     expect(r?.email).toBe("marc@acme.io");
     expect(r?.name).toBe("Marc");

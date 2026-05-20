@@ -19,7 +19,7 @@ export async function extractEmail(siteUrl: string): Promise<EmailHit | null> {
     const hit = scanHtml(homepage, siteDomain, "HOMEPAGE_FOOTER");
     if (hit) return hit;
   }
-  for (const path of ["/contact", "/about"]) {
+  for (const path of ["/contact", "/contact-us", "/about"]) {
     const url = new URL(path, site).toString();
     const html = await fetchHtml(url);
     if (!html) continue;
