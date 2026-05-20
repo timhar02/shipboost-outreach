@@ -68,8 +68,9 @@ export function InboxClient({ drafts: initial, sentToday }: { drafts: DraftView[
   return (
     <main className="grid grid-cols-[320px_1fr] h-screen">
       <aside className="border-r border-zinc-800 overflow-y-auto">
-        <div className="p-3 text-xs text-zinc-500 border-b border-zinc-800">
-          {drafts.length} pending · sent today: {sentToday}/30
+        <div className="p-3 text-xs text-zinc-500 border-b border-zinc-800 flex items-center justify-between">
+          <span>{drafts.length} pending · sent today: {sentToday}/30</span>
+          <a href="/dashboard" className="text-zinc-400 hover:text-zinc-200 underline">pipeline</a>
         </div>
         {drafts.map((d) => (
           <button
