@@ -11,7 +11,7 @@ describe("renderTemplate", () => {
   it("substitutes variables and derives plain text", () => {
     const r = renderTemplate(tmpl, {
       first_name: "Sarah", product_name: "Wavefly", tagline: "quiet launches",
-      website_domain: "trywavefly.com", sender_first_name: "Tim",
+      website_domain: "trywavefly.com", sender_first_name: "Tim", shipboost_dr: "44",
     });
     expect(r.subject).toBe("Wavefly — quick note");
     expect(r.bodyHtml).toContain("Hey Sarah,");
@@ -21,7 +21,7 @@ describe("renderTemplate", () => {
   });
   it("throws if a referenced variable is missing", () => {
     expect(() => renderTemplate(tmpl, {
-      product_name: "Wavefly", tagline: "t", website_domain: "x.com", sender_first_name: "Tim",
+      product_name: "Wavefly", tagline: "t", website_domain: "x.com", sender_first_name: "Tim", shipboost_dr: "44",
     } as never)).toThrow(/first_name/);
   });
 });

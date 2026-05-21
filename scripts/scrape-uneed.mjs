@@ -21,8 +21,9 @@ if (!INGEST_URL || !INGEST_SECRET) {
 const HOMEPAGE = "https://www.uneed.best/";
 const TOOL_URL = (slug) => `https://www.uneed.best/tool/${slug}`;
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130";
-// Cap how many tools we resolve per run. Uneed shows ~10-20 launches/day.
-const MAX_TOOLS = 25;
+// Cap how many tools we resolve per run.
+const MAX_TOOLS = 100;
+const MAX_SHOW_MORE_CLICKS = 20;
 
 async function getTodaySlugs() {
   const browser = await chromium.launch({ headless: true });
@@ -34,6 +35,39 @@ async function getTodaySlugs() {
     await page.waitForSelector('a[href^="/tool/"]', { timeout: 15_000 });
     // Give the "today" section a moment to fully populate.
     await page.waitForTimeout(2000);
+
+    // Click "Show more" until exhausted (or cap reached).
+    for (let clicks = 0; clicks < MAX_SHOW_MORE_CLICKS; clicks++) {
+      const beforeCount = await page.evaluate(
+        () => document.querySelectorAll('a[href^="/tool/"]').length,
+      );
+
+      const clicked = await page.evaluate(() => {
+        // Find a button whose text matches "show more" / "load more" / "view more".
+        const buttons = Array.from(document.querySelectorAll("button, a"));
+        const candidate = buttons.find((b) => {
+          const txt = (b.textContent || "").trim().toLowerCase();
+          return /^(show|load|view)\s+more$/.test(txt) || txt === "show more" || txt === "load more";
+        });
+        if (!candidate) return false;
+        // scroll into view in case it's lazy-rendered
+        candidate.scrollIntoView({ behavior: "instant", block: "center" });
+        candidate.click();
+        return true;
+      });
+
+      if (!clicked) break;
+      // Wait for new content to render
+      await page.waitForTimeout(1500);
+      const afterCount = await page.evaluate(
+        () => document.querySelectorAll('a[href^="/tool/"]').length,
+      );
+      if (afterCount <= beforeCount) {
+        console.log(`Show-more clicked but count didn't grow (${beforeCount} -> ${afterCount}); stopping`);
+        break;
+      }
+      console.log(`Show-more click ${clicks + 1}: ${beforeCount} -> ${afterCount} tool links`);
+    }
 
     // Find the "Best products launching today" heading and grab the tool links
     // in its sibling container. Fallback: collect all visible tool links and dedupe.

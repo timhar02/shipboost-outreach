@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db/client";
 import { PeerPushSource } from "@/lib/sources/peerpush";
 import { HackerNewsSource } from "@/lib/sources/hacker-news";
+import { BetaListSource } from "@/lib/sources/betalist";
 import { extractEmail } from "@/lib/scrape/extract-email";
 import { jitter } from "@/lib/scrape/fetch-html";
 import { templates } from "@/lib/draft/templates";
@@ -17,11 +18,12 @@ export type FetchResult = {
   bySource: Record<string, number>;
 };
 
-const SOURCES = [new PeerPushSource(), new HackerNewsSource()];
+const SOURCES = [new PeerPushSource(), new HackerNewsSource(), new BetaListSource()];
 
 export async function runFetchAndQueue(): Promise<FetchResult> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const senderFirstName = process.env.SENDER_FIRST_NAME ?? "Tim";
+  const shipboostDr = process.env.SHIPBOOST_DR ?? "44";
 
   const result: FetchResult = {
     launchesSeen: 0,
@@ -90,6 +92,7 @@ export async function runFetchAndQueue(): Promise<FetchResult> {
         tagline: raw.tagline ?? raw.name,
         website_domain: domain,
         sender_first_name: senderFirstName,
+        shipboost_dr: shipboostDr,
       });
 
       await prisma.outreachDraft.create({

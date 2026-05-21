@@ -15,6 +15,7 @@ enum SourceKind {
   FOUNDRLIST
   SCROLLLAUNCH
   HACKER_NEWS
+  BETALIST
 }
 
 enum DraftStatus {

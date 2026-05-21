@@ -19,6 +19,7 @@ export async function runFollowUps(): Promise<{ replied: number; followUpsQueued
   });
 
   const senderFirstName = process.env.SENDER_FIRST_NAME ?? "Tim";
+  const shipboostDr = process.env.SHIPBOOST_DR ?? "44";
   let queued = 0;
 
   for (const parent of candidates) {
@@ -33,6 +34,7 @@ export async function runFollowUps(): Promise<{ replied: number; followUpsQueued
       tagline: c.launch.tagline ?? c.launch.name,
       website_domain: c.domain,
       sender_first_name: senderFirstName,
+      shipboost_dr: shipboostDr,
     });
 
     await prisma.$transaction([

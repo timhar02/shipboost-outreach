@@ -7,6 +7,7 @@ export type RenderVars = {
   tagline: string;
   website_domain: string;
   sender_first_name: string;
+  shipboost_dr: string;
 };
 
 export type Rendered = { subject: string; bodyHtml: string; bodyText: string };

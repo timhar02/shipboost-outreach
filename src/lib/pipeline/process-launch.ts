@@ -27,9 +27,10 @@ export async function processLaunch(
   sourceId: string,
   sourceKind: SourceKind,
   raw: RawLaunch,
-  opts: { senderFirstName?: string } = {},
+  opts: { senderFirstName?: string; shipboostDr?: string } = {},
 ): Promise<ProcessOutcome> {
   const senderFirstName = opts.senderFirstName ?? process.env.SENDER_FIRST_NAME ?? "Tim";
+  const shipboostDr = opts.shipboostDr ?? process.env.SHIPBOOST_DR ?? "44";
 
   const launch = await prisma.launch.upsert({
     where: { sourceId_externalId: { sourceId, externalId: raw.externalId } },
@@ -88,6 +89,7 @@ export async function processLaunch(
     tagline: raw.tagline ?? raw.name,
     website_domain: domain,
     sender_first_name: senderFirstName,
+    shipboost_dr: shipboostDr,
   });
 
   const draft = await prisma.outreachDraft.create({

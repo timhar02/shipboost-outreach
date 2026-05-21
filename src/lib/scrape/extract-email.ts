@@ -19,11 +19,21 @@ export async function extractEmail(siteUrl: string): Promise<EmailHit | null> {
     const hit = scanHtml(homepage, siteDomain, "HOMEPAGE_FOOTER");
     if (hit) return hit;
   }
-  for (const path of ["/contact", "/contact-us", "/about"]) {
+  const FALLBACK_PATHS = [
+    "/contact", "/contact-us",
+    "/about", "/about-us",
+    "/team",
+    "/support", "/help",
+    "/press",
+    "/community",
+    "/careers", "/jobs",
+    "/imprint", "/legal",
+  ];
+  for (const path of FALLBACK_PATHS) {
     const url = new URL(path, site).toString();
     const html = await fetchHtml(url);
     if (!html) continue;
-    const source: DiscoveredFrom = path === "/about" ? "ABOUT_PAGE" : "CONTACT_PAGE";
+    const source: DiscoveredFrom = path.startsWith("/about") ? "ABOUT_PAGE" : "CONTACT_PAGE";
     const hit = scanHtml(html, siteDomain, source);
     if (hit) return hit;
   }

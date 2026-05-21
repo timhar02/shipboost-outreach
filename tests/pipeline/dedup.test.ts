@@ -20,6 +20,13 @@ vi.mock("@/lib/sources/hacker-news", () => ({
   },
 }));
 
+vi.mock("@/lib/sources/betalist", () => ({
+  BetaListSource: class {
+    kind = "BETALIST" as const;
+    async fetchSince() { return []; }
+  },
+}));
+
 vi.mock("@/lib/scrape/extract-email", () => ({
   extractEmail: vi.fn().mockResolvedValue({ email: "sarah@trywavefly.com", name: "Sarah", source: "ABOUT_PAGE" }),
 }));
