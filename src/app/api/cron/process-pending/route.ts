@@ -48,7 +48,9 @@ export async function GET(req: NextRequest) {
         launchedAt: launch.launchedAt,
         raw: launch.raw,
       };
-      const outcome = await processLaunch(launch.sourceId, launch.source.kind, raw);
+      // Skip LLM here to stay under Vercel 60s. /api/admin/redraft handles
+      // LLM personalization in a separate, slower batch.
+      const outcome = await processLaunch(launch.sourceId, launch.source.kind, raw, { useLlm: false });
       switch (outcome.kind) {
         case "DRAFT_CREATED":
           result.draftsCreated++;

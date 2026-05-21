@@ -7,7 +7,10 @@ export async function pollReplies(): Promise<{ matched: number }> {
   const accountId = process.env.ZOHO_ACCOUNT_ID;
   if (!accountId) throw new Error("ZOHO_ACCOUNT_ID missing");
 
-  const inbox = (await zohoFetch(`/accounts/${accountId}/messages/view?folder=Inbox&limit=200`)) as {
+  // Zoho /messages/view no longer accepts `folder` as a query param.
+  // We pull all recent messages and filter client-side via inReplyTo match
+  // (our sent messageIds, so out-going ones won't match anyway).
+  const inbox = (await zohoFetch(`/accounts/${accountId}/messages/view?limit=200`)) as {
     data?: ZohoListItem[];
   };
   const items = inbox.data ?? [];

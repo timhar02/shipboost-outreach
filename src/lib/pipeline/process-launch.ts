@@ -32,11 +32,14 @@ export async function processLaunch(
   sourceId: string,
   sourceKind: SourceKind,
   raw: RawLaunch,
-  opts: { senderFirstName?: string; shipboostDr?: string } = {},
+  opts: { senderFirstName?: string; shipboostDr?: string; useLlm?: boolean } = {},
 ): Promise<ProcessOutcome> {
   const senderFirstName = opts.senderFirstName ?? process.env.SENDER_FIRST_NAME ?? "Tim";
   const shipboostDr = opts.shipboostDr ?? process.env.SHIPBOOST_DR ?? "44";
-  const useLlm = process.env.USE_LLM_PERSONALIZATION === "1" && !!process.env.OPENROUTER_API_KEY;
+  // LLM personalization is opt-in per call. The cron-driven process-pending
+  // path passes useLlm=false to stay under Vercel 60s. The /api/admin/redraft
+  // path takes care of LLM-personalizing drafts in a separate, slower batch.
+  const useLlm = opts.useLlm ?? (process.env.USE_LLM_PERSONALIZATION === "1" && !!process.env.OPENROUTER_API_KEY);
   const llmModel = process.env.LLM_MODEL ?? "openai/gpt-oss-120b:free";
 
   const launch = await prisma.launch.upsert({
