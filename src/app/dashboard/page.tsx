@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db/client";
 import { DashboardClient, type Card, type Bucket } from "./DashboardClient";
+import { sourceUrl, sourceLabel } from "@/lib/sources/source-url";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ export default async function DashboardPage() {
   const drafts = await prisma.outreachDraft.findMany({
     orderBy: { createdAt: "desc" },
     include: {
-      contact: { include: { launch: true } },
+      contact: { include: { launch: { include: { source: true } } } },
       events: { select: { kind: true, createdAt: true } },
     },
   });
@@ -53,6 +54,11 @@ export default async function DashboardPage() {
         name: d.contact.launch.name,
         tagline: d.contact.launch.tagline,
         url: d.contact.launch.url,
+      },
+      source: {
+        kind: d.contact.launch.source.kind,
+        label: sourceLabel(d.contact.launch.source.kind),
+        url: sourceUrl(d.contact.launch.source.kind, d.contact.launch.externalId, d.contact.launch.raw),
       },
     };
   });

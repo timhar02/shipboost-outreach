@@ -8,6 +8,7 @@ export type DraftView = {
   templateKey: string;
   contact: { email: string; name: string | null; domain: string; discoveredFrom: string };
   launch: { name: string; tagline: string | null; url: string };
+  source: { kind: string; label: string; url: string | null };
 };
 
 export function InboxClient({ drafts: initial, sentToday }: { drafts: DraftView[]; sentToday: number }) {
@@ -142,6 +143,15 @@ function DraftPanel({
           <p className="text-sm text-zinc-500">{draft.launch.tagline}</p>
           <p className="text-xs text-zinc-600 mt-1">
             <a href={draft.launch.url} target="_blank" rel="noreferrer" className="underline">{draft.launch.url}</a>
+          </p>
+          <p className="text-xs text-zinc-600 mt-1">
+            found via {draft.source.url ? (
+              <a href={draft.source.url} target="_blank" rel="noreferrer" className="text-zinc-400 hover:text-zinc-200 underline">
+                {draft.source.label}
+              </a>
+            ) : (
+              <span className="text-zinc-500">{draft.source.label}</span>
+            )}
           </p>
         </div>
         <div className="text-right">

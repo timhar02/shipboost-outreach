@@ -24,6 +24,7 @@ export type Card = {
   hasReply: boolean;
   contact: { email: string; name: string | null; domain: string };
   launch: { name: string; tagline: string | null; url: string };
+  source: { kind: string; label: string; url: string | null };
 };
 
 const COLUMNS: { key: Bucket; title: string; sub?: string; tint: string }[] = [
@@ -140,9 +141,24 @@ function CardView({ card, busy, onSkip }: { card: Card; busy: boolean; onSkip: (
       <div className="text-[11px] text-zinc-400 truncate">{card.contact.email}</div>
       <div className="flex items-center justify-between gap-2 pt-1 text-[10px] text-zinc-500">
         <span>{stamp}</span>
-        {card.openCount > 0 && (
-          <span className="text-sky-400">{card.openCount} open{card.openCount > 1 ? "s" : ""}</span>
-        )}
+        <span className="flex items-center gap-2">
+          {card.openCount > 0 && (
+            <span className="text-sky-400">{card.openCount} open{card.openCount > 1 ? "s" : ""}</span>
+          )}
+          {card.source.url ? (
+            <a
+              href={card.source.url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-zinc-500 hover:text-zinc-300 underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {card.source.label}
+            </a>
+          ) : (
+            <span className="text-zinc-600">{card.source.label}</span>
+          )}
+        </span>
       </div>
       {card.bucket === "pending" ? (
         <div className="flex gap-1.5 pt-1">
