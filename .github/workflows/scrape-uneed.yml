@@ -1,0 +1,32 @@
+name: Scrape Uneed launches
+
+on:
+  schedule:
+    # Daily at 09:30 UTC. Runs after the Vercel cron at 09:00.
+    - cron: "30 9 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: scrape-uneed
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Playwright with Chromium
+        run: |
+          npm install --no-save playwright@1.49
+          npx playwright install --with-deps chromium
+
+      - name: Scrape and post to ingest endpoint
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: node scripts/scrape-uneed.mjs
