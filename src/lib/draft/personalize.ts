@@ -33,11 +33,6 @@ const BANNED = [
   /\bdelve\b/i, /\bdelving\b/i, /\bin essence\b/i, /\bultimately\b/i,
   /\bfundamentally\b/i, /\bimagine if\b/i, /\ba stepping stone\b/i,
   /\btapestry\b/i, /\brealm of\b/i, /\bmyriad\b/i,
-  // dash variants — all AI fingerprints
-  /—/,             // U+2014 em-dash
-  /–/,             // U+2013 en-dash
-  /‑/,             // U+2011 non-breaking hyphen
-  /―/,             // U+2015 horizontal bar
   // hype openers that LLMs love
   /^(hi|hello|greetings|dear)\b/i,
   /^(congrats|congratulations)/i,
@@ -104,6 +99,23 @@ function violationsIn(text: string): RegExp[] {
   return BANNED.filter((re) => re.test(text));
 }
 
+/**
+ * Silently rewrite dash variants the model loves into plain ASCII.
+ * Em-dashes flanked by spaces become ". " (a sentence break).
+ * Other dash variants become a plain "-" hyphen.
+ */
+function normalizeDashes(s: string): string {
+  return s
+    .replace(/\s+—\s+/g, ". ")     // " — " → ". "
+    .replace(/—/g, " - ")          // bare em-dash → " - "
+    .replace(/–/g, "-")            // en-dash
+    .replace(/‑/g, "-")            // non-breaking hyphen
+    .replace(/―/g, "-")            // horizontal bar
+    .replace(/\s+\.\s+/g, ". ")    // collapse any " .  " from rewrites
+    .replace(/\s{2,}/g, " ")       // collapse double spaces
+    .trim();
+}
+
 function tryParse(raw: string): { subject?: string; opener?: string } | null {
   // Strip code fences if the model added them despite instructions.
   let cleaned = raw.trim();
@@ -162,8 +174,8 @@ export async function personalize(
       continue;
     }
 
-    const subject = parsed.subject.trim();
-    const opener = parsed.opener.trim();
+    const subject = normalizeDashes(parsed.subject);
+    const opener = normalizeDashes(parsed.opener);
 
     // Length checks
     if (subject.length < 3 || subject.length > 80) {

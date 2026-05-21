@@ -61,7 +61,9 @@ export async function GET(req: NextRequest) {
     failures: [] as { draftId: string; error: string }[],
   };
 
-  for (const d of drafts) {
+  for (let i = 0; i < drafts.length; i++) {
+    const d = drafts[i];
+    if (i > 0) await new Promise((r) => setTimeout(r, 4000)); // OpenRouter free tier: 16 req/min
     try {
       const ctx = await extractContext(d.contact.launch.url);
       const personalized = await personalize(
