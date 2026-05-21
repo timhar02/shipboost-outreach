@@ -8,6 +8,9 @@ export type RenderVars = {
   website_domain: string;
   sender_first_name: string;
   shipboost_dr: string;
+  // Optional — used by hybrid templates that delegate the opener + subject to the LLM.
+  personalized_subject?: string;
+  personalized_opener?: string;
 };
 
 export type Rendered = { subject: string; bodyHtml: string; bodyText: string };
