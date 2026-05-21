@@ -98,31 +98,65 @@ async function fetchCardsFromPage(url: string): Promise<CardRaw[]> {
   const $ = load(html);
   const cards: CardRaw[] = [];
 
-  // Each startup link looks like:
-  //   <a href="/startups/<slug>">
+  // BetaList renders two distinct card shapes:
+  //
+  // FEATURED ("today" section):
+  //   <a class="" href="/startups/<slug>">
   //     <div class="font-medium ...">Name</div>
   //   </a>
   //   <div class="text-gray-600 ...">Tagline</div>
+  //
+  // ROW (the bulk listing):
+  //   <div class="... startup-row">
+  //     <a class="absolute inset-0" href="/startups/<slug>"></a>
+  //     ...
+  //     <span class="... font-medium ...">Name</span>
+  //     <span class="... text-gray-500 ...">Tagline</span>
+  //   </div>
+  //
+  // Strategy: iterate every startup anchor, derive slug, then look for name
+  // first inside the anchor (featured) and, failing that, inside the closest
+  // `.startup-row` ancestor (row card).
+  const seenSlugs = new Set<string>();
   $('a[href^="/startups/"]').each((_, el) => {
     const $el = $(el);
     const href = $el.attr("href") || "";
     const m = href.match(/^\/startups\/([^/?#]+)$/);
     if (!m) return;
     const slug = m[1];
+    if (seenSlugs.has(slug)) return;
 
-    // Skip card-image links inside the same anchor parent.
-    const nameDiv = $el.find('div.font-medium').first();
-    const name = nameDiv.text().trim();
+    // Try featured card pattern first.
+    let name = cleanName($el.find("div.font-medium").first().text());
+    let tagline = "";
+    if (name) {
+      tagline = $el.parent().find("div.text-gray-600").first().text().trim();
+    } else {
+      // Row card pattern: walk up to the startup-row container.
+      const $row = $el.closest(".startup-row");
+      if ($row.length) {
+        name = cleanName($row.find("span.font-medium").first().text());
+        // Tagline is the next text-gray-500 (or text-gray-400 in dark mode classes).
+        tagline = $row.find("span.text-gray-500, span.text-gray-600").first().text().trim();
+      }
+    }
+
     if (!name) return;
-
-    // Tagline is the sibling div with class containing text-gray-600.
-    const taglineDiv = $el.parent().find("div.text-gray-600").first();
-    const tagline = taglineDiv.text().trim();
-
+    seenSlugs.add(slug);
     cards.push({ slug, name, tagline });
   });
 
   return cards;
+}
+
+// BetaList appends badges like "BOOSTED" / "FEATURED" inside the name element.
+// Strip trailing whitespace then any all-caps badge word.
+function cleanName(raw: string): string {
+  return raw
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\s+(BOOSTED|FEATURED|SPONSORED|TODAY|NEW)$/i, "")
+    .trim();
 }
 
 async function resolveVisit(slug: string): Promise<string | null> {

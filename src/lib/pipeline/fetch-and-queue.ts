@@ -2,13 +2,11 @@ import { prisma } from "@/server/db/client";
 import { PeerPushSource } from "@/lib/sources/peerpush";
 import { HackerNewsSource } from "@/lib/sources/hacker-news";
 import { BetaListSource } from "@/lib/sources/betalist";
-import { extractEmail } from "@/lib/scrape/extract-email";
-import { jitter } from "@/lib/scrape/fetch-html";
-import { templates } from "@/lib/draft/templates";
-import { selectTemplate } from "@/lib/draft/select";
-import { renderTemplate } from "@/lib/draft/render";
+import { processLaunch } from "@/lib/pipeline/process-launch";
 
-const DAILY_CAP = 30;
+// Soft cap on drafts created per cron run, across all sources combined.
+// This caps *creates*, not sends. The send-side cap lives in lib/zoho/send.ts.
+const DAILY_CREATE_CAP = 100;
 
 export type FetchResult = {
   launchesSeen: number;
@@ -22,8 +20,6 @@ const SOURCES = [new PeerPushSource(), new HackerNewsSource(), new BetaListSourc
 
 export async function runFetchAndQueue(): Promise<FetchResult> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const senderFirstName = process.env.SENDER_FIRST_NAME ?? "Tim";
-  const shipboostDr = process.env.SHIPBOOST_DR ?? "44";
 
   const result: FetchResult = {
     launchesSeen: 0,
@@ -52,57 +48,21 @@ export async function runFetchAndQueue(): Promise<FetchResult> {
     result.bySource[sourceAdapter.kind] = 0;
 
     for (const raw of launches) {
-      if (result.draftsCreated >= DAILY_CAP) break;
+      if (result.draftsCreated >= DAILY_CREATE_CAP) break;
 
-      const launch = await prisma.launch.upsert({
-        where: { sourceId_externalId: { sourceId: source.id, externalId: raw.externalId } },
-        create: {
-          sourceId: source.id, externalId: raw.externalId, name: raw.name, tagline: raw.tagline,
-          url: raw.url, launchedAt: raw.launchedAt, raw: raw.raw as object,
-        },
-        update: {},
-      });
-
-      const domain = new URL(raw.url).hostname.replace(/^www\./, "").toLowerCase();
-      const dupeByDomain = await prisma.contact.findUnique({ where: { domain } });
-      if (dupeByDomain) { result.skipped++; continue; }
-
-      const hit = await extractEmail(raw.url);
-      await jitter();
-      if (!hit) { result.skipped++; continue; }
-      result.emailsFound++;
-
-      const dupeByEmail = await prisma.contact.findUnique({ where: { email: hit.email } });
-      if (dupeByEmail) { result.skipped++; continue; }
-
-      let contact;
-      try {
-        contact = await prisma.contact.create({
-          data: { email: hit.email, domain, name: hit.name, launchId: launch.id, discoveredFrom: hit.source },
-        });
-      } catch { result.skipped++; continue; }
-
-      const eligible = hit.name ? templates : templates.filter((t) => t.key.endsWith("-noname"));
-      const pool = eligible.length ? eligible : templates;
-      const tmpl = selectTemplate(domain, pool);
-
-      const rendered = renderTemplate(tmpl, {
-        first_name: hit.name,
-        product_name: raw.name,
-        tagline: raw.tagline ?? raw.name,
-        website_domain: domain,
-        sender_first_name: senderFirstName,
-        shipboost_dr: shipboostDr,
-      });
-
-      await prisma.outreachDraft.create({
-        data: {
-          contactId: contact.id, templateKey: tmpl.key,
-          subject: rendered.subject, body: rendered.bodyHtml, bodyText: rendered.bodyText,
-        },
-      });
-      result.draftsCreated++;
-      result.bySource[sourceAdapter.kind]++;
+      const outcome = await processLaunch(source.id, sourceAdapter.kind, raw);
+      switch (outcome.kind) {
+        case "DRAFT_CREATED":
+          result.emailsFound++;
+          result.draftsCreated++;
+          result.bySource[sourceAdapter.kind]++;
+          break;
+        case "SKIPPED_DEDUP":
+        case "SKIPPED_NO_EMAIL":
+        case "SKIPPED_ERROR":
+          result.skipped++;
+          break;
+      }
     }
   }
 
