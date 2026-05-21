@@ -52,17 +52,20 @@ model Source {
 }
 
 model Launch {
-  id         String   @id @default(cuid())
-  source     Source   @relation(fields: [sourceId], references: [id])
-  sourceId   String
-  externalId String
-  name       String
-  tagline    String?
-  url        String
-  launchedAt DateTime
-  raw        Json
-  fetchedAt  DateTime @default(now())
-  contact    Contact?
+  id          String    @id @default(cuid())
+  source      Source    @relation(fields: [sourceId], references: [id])
+  sourceId    String
+  externalId  String
+  name        String
+  tagline     String?
+  url         String
+  launchedAt  DateTime
+  raw         Json
+  fetchedAt   DateTime  @default(now())
+  // Set the first time we run processLaunch on this row. Pending queue picks
+  // rows where processedAt IS NULL so we never retry the same dead-end forever.
+  processedAt DateTime?
+  contact     Contact?
 
   @@unique([sourceId, externalId])
 }

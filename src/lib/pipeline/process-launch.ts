@@ -41,8 +41,9 @@ export async function processLaunch(
       url: raw.url,
       launchedAt: raw.launchedAt,
       raw: raw.raw as object,
+      processedAt: new Date(),
     },
-    update: {},
+    update: { processedAt: new Date() },
   });
 
   let domain: string;
