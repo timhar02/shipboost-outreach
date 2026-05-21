@@ -9,6 +9,7 @@ const PUBLIC = [
   /^\/api\/ingest\//,
   /^\/api\/zoho\/callback$/,
   /^\/api\/debug\//,
+  /^\/api\/admin\//,
 ];
 
 export async function proxy(req: NextRequest) {
