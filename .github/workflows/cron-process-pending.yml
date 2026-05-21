@@ -22,10 +22,12 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
           set -e
-          STATUS=$(curl -sS -o /tmp/out.json -w "%{http_code}" \
+          URL="${APP_URL%/}/api/cron/process-pending"
+          echo "Calling: $URL"
+          STATUS=$(curl -sSL -o /tmp/out.json -w "%{http_code}" \
             -H "x-cron-secret: $CRON_SECRET" \
             --max-time 90 \
-            "$APP_URL/api/cron/process-pending")
+            "$URL")
           echo "HTTP $STATUS"
           cat /tmp/out.json
           [ "$STATUS" = "200" ]

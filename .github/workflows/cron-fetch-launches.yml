@@ -23,10 +23,12 @@ jobs:
           if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
             echo "APP_URL and CRON_SECRET secrets must be set"; exit 1
           fi
-          STATUS=$(curl -sS -o /tmp/out.json -w "%{http_code}" \
+          URL="${APP_URL%/}/api/cron/fetch-launches"
+          echo "Calling: $URL"
+          STATUS=$(curl -sSL -o /tmp/out.json -w "%{http_code}" \
             -H "x-cron-secret: $CRON_SECRET" \
             --max-time 120 \
-            "$APP_URL/api/cron/fetch-launches")
+            "$URL")
           echo "HTTP $STATUS"
           cat /tmp/out.json
           [ "$STATUS" = "200" ]
