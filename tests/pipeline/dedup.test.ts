@@ -87,13 +87,13 @@ beforeEach(() => {
 import { runFetchAndQueue } from "@/lib/pipeline/fetch-and-queue";
 
 describe("runFetchAndQueue", () => {
-  it("creates one draft on first run, zero on second (domain dedup)", async () => {
+  it("persists Launch rows once (idempotent on second run)", async () => {
     const r1 = await runFetchAndQueue();
-    expect(r1.draftsCreated).toBe(1);
-    expect(db.drafts).toHaveLength(1);
+    expect(r1.launchesStored).toBe(1);
+    expect(db.launches.size).toBe(1);
 
-    const r2 = await runFetchAndQueue();
-    expect(r2.draftsCreated).toBe(0);
-    expect(db.drafts).toHaveLength(1);
+    // Second run upserts the same Launch row, so DB still has 1.
+    await runFetchAndQueue();
+    expect(db.launches.size).toBe(1);
   });
 });

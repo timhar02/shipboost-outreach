@@ -2,17 +2,16 @@ import { prisma } from "@/server/db/client";
 import { PeerPushSource } from "@/lib/sources/peerpush";
 import { HackerNewsSource } from "@/lib/sources/hacker-news";
 import { BetaListSource } from "@/lib/sources/betalist";
-import { processLaunch } from "@/lib/pipeline/process-launch";
 
-// Soft cap on drafts created per cron run, across all sources combined.
-// This caps *creates*, not sends. The send-side cap lives in lib/zoho/send.ts.
-const DAILY_CREATE_CAP = 100;
-
+/**
+ * Lightweight daily fetch: pulls launches from each source and persists them
+ * as Launch rows with processedAt=null. The slow per-launch email-scrape +
+ * draft-create work is done later in batches by /api/cron/process-pending,
+ * keeping each Vercel cron call comfortably under the 60s function timeout.
+ */
 export type FetchResult = {
   launchesSeen: number;
-  emailsFound: number;
-  draftsCreated: number;
-  skipped: number;
+  launchesStored: number;
   bySource: Record<string, number>;
 };
 
@@ -23,9 +22,7 @@ export async function runFetchAndQueue(): Promise<FetchResult> {
 
   const result: FetchResult = {
     launchesSeen: 0,
-    emailsFound: 0,
-    draftsCreated: 0,
-    skipped: 0,
+    launchesStored: 0,
     bySource: {},
   };
 
@@ -40,7 +37,6 @@ export async function runFetchAndQueue(): Promise<FetchResult> {
     try {
       launches = await sourceAdapter.fetchSince(since);
     } catch {
-      // If one source errors, continue to next rather than aborting all.
       continue;
     }
 
@@ -48,20 +44,25 @@ export async function runFetchAndQueue(): Promise<FetchResult> {
     result.bySource[sourceAdapter.kind] = 0;
 
     for (const raw of launches) {
-      if (result.draftsCreated >= DAILY_CREATE_CAP) break;
-
-      const outcome = await processLaunch(source.id, sourceAdapter.kind, raw);
-      switch (outcome.kind) {
-        case "DRAFT_CREATED":
-          result.emailsFound++;
-          result.draftsCreated++;
-          result.bySource[sourceAdapter.kind]++;
-          break;
-        case "SKIPPED_DEDUP":
-        case "SKIPPED_NO_EMAIL":
-        case "SKIPPED_ERROR":
-          result.skipped++;
-          break;
+      try {
+        await prisma.launch.upsert({
+          where: { sourceId_externalId: { sourceId: source.id, externalId: raw.externalId } },
+          create: {
+            sourceId: source.id,
+            externalId: raw.externalId,
+            name: raw.name,
+            tagline: raw.tagline,
+            url: raw.url,
+            launchedAt: raw.launchedAt,
+            raw: raw.raw as object,
+            // processedAt stays null so process-pending picks it up
+          },
+          update: {},
+        });
+        result.launchesStored++;
+        result.bySource[sourceAdapter.kind]++;
+      } catch {
+        // ignore individual upsert errors so one bad row doesn't kill the batch
       }
     }
   }
