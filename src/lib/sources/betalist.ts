@@ -48,38 +48,50 @@ export class BetaListSource implements LaunchSource {
       return true;
     });
 
+    // Filter cards by tagline ban list before paying the cost of HTTP resolution.
+    const eligible = unique.filter((c) => {
+      const haystack = `${c.name} ${c.tagline}`;
+      return !TAGLINE_DENY.some((re) => re.test(haystack));
+    });
+
+    // Resolve /visit redirects in parallel batches so we don't blow the
+    // 60s function timeout on Vercel. 10-wide is polite-ish and gives us
+    // ~10x speedup over sequential.
     const out: RawLaunch[] = [];
-    for (const card of unique) {
-      const haystack = `${card.name} ${card.tagline}`;
-      if (TAGLINE_DENY.some((re) => re.test(haystack))) continue;
-
-      const realUrl = await resolveVisit(card.slug);
-      if (!realUrl) continue;
-
-      let cleanedUrl: string;
-      try {
-        const u = new URL(realUrl);
-        u.searchParams.delete("ref");
-        for (const k of [...u.searchParams.keys()]) {
-          if (k.startsWith("utm_")) u.searchParams.delete(k);
-        }
-        cleanedUrl = canonicalizeUrl(u.toString());
-      } catch {
-        continue;
+    const PARALLEL = 10;
+    for (let i = 0; i < eligible.length; i += PARALLEL) {
+      const batch = eligible.slice(i, i + PARALLEL);
+      const resolved = await Promise.all(
+        batch.map(async (card) => {
+          const realUrl = await resolveVisit(card.slug);
+          if (!realUrl) return null;
+          try {
+            const u = new URL(realUrl);
+            u.searchParams.delete("ref");
+            for (const k of [...u.searchParams.keys()]) {
+              if (k.startsWith("utm_")) u.searchParams.delete(k);
+            }
+            const cleanedUrl = canonicalizeUrl(u.toString());
+            const host = new URL(cleanedUrl).hostname;
+            if (host.endsWith("betalist.com")) return null;
+            if (host.endsWith("chrome.google.com") || host.endsWith("apps.apple.com") || host.endsWith("play.google.com")) return null;
+            return { card, cleanedUrl };
+          } catch {
+            return null;
+          }
+        }),
+      );
+      for (const r of resolved) {
+        if (!r) continue;
+        out.push({
+          externalId: `betalist:${r.card.slug}`,
+          name: r.card.name,
+          tagline: r.card.tagline || undefined,
+          url: r.cleanedUrl,
+          launchedAt: new Date(),
+          raw: r.card,
+        });
       }
-
-      const host = new URL(cleanedUrl).hostname;
-      if (host.endsWith("betalist.com")) continue;
-      if (host.endsWith("chrome.google.com") || host.endsWith("apps.apple.com") || host.endsWith("play.google.com")) continue;
-
-      out.push({
-        externalId: `betalist:${card.slug}`,
-        name: card.name,
-        tagline: card.tagline || undefined,
-        url: cleanedUrl,
-        launchedAt: new Date(),
-        raw: card,
-      });
     }
 
     return out;
