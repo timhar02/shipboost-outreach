@@ -1,14 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/server/db/client";
-import { processLaunch } from "@/lib/pipeline/process-launch";
-import type { RawLaunch } from "@/lib/sources/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Cap per-call processing to stay under maxDuration. Email scrape ~5-10s/launch.
-const MAX_PER_CALL = 5;
+/**
+ * Receive a batch of scraped launches from GitHub Actions (e.g. Uneed scraper).
+ * We persist them as Launch rows with processedAt=null and let
+ * /api/cron/process-pending drain them later in 5-at-a-time batches. Keeps
+ * this endpoint fast (under Vercel 60s) regardless of batch size.
+ */
 
 const Payload = z.object({
   source: z.enum(["PEERPUSH", "PEERLIST", "UNEED", "FOUNDRLIST", "SCROLLLAUNCH"]),
@@ -41,67 +43,29 @@ export async function POST(req: NextRequest) {
     update: {},
   });
 
-  const result = {
-    received: launches.length,
-    processed: 0,
-    draftsCreated: 0,
-    skippedDedup: 0,
-    skippedNoEmail: 0,
-    skippedError: 0,
-    deferred: 0,
-  };
-
+  let stored = 0;
+  let failed = 0;
   for (const item of launches) {
-    const raw: RawLaunch = {
-      externalId: item.externalId,
-      name: item.name,
-      tagline: item.tagline,
-      url: item.url,
-      launchedAt: new Date(item.launchedAt),
-      raw: item,
-    };
-
-    if (result.processed >= MAX_PER_CALL) {
-      // Persist as Launch row so a later call (or future process-pending cron)
-      // can pick it up; skip the slow email-scrape step now.
-      try {
-        await prisma.launch.upsert({
-          where: { sourceId_externalId: { sourceId: source.id, externalId: raw.externalId } },
-          create: {
-            sourceId: source.id,
-            externalId: raw.externalId,
-            name: raw.name,
-            tagline: raw.tagline,
-            url: raw.url,
-            launchedAt: raw.launchedAt,
-            raw: raw.raw as object,
-          },
-          update: {},
-        });
-        result.deferred++;
-      } catch {
-        result.skippedError++;
-      }
-      continue;
-    }
-
-    const outcome = await processLaunch(source.id, sourceKind, raw);
-    result.processed++;
-    switch (outcome.kind) {
-      case "DRAFT_CREATED":
-        result.draftsCreated++;
-        break;
-      case "SKIPPED_DEDUP":
-        result.skippedDedup++;
-        break;
-      case "SKIPPED_NO_EMAIL":
-        result.skippedNoEmail++;
-        break;
-      case "SKIPPED_ERROR":
-        result.skippedError++;
-        break;
+    try {
+      await prisma.launch.upsert({
+        where: { sourceId_externalId: { sourceId: source.id, externalId: item.externalId } },
+        create: {
+          sourceId: source.id,
+          externalId: item.externalId,
+          name: item.name,
+          tagline: item.tagline,
+          url: item.url,
+          launchedAt: new Date(item.launchedAt),
+          raw: item,
+          // processedAt stays null so process-pending picks it up
+        },
+        update: {},
+      });
+      stored++;
+    } catch {
+      failed++;
     }
   }
 
-  return NextResponse.json({ ok: true, source: sourceKind, ...result });
+  return NextResponse.json({ ok: true, source: sourceKind, received: launches.length, stored, failed });
 }
