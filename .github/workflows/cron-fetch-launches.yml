@@ -1,0 +1,32 @@
+name: Cron - fetch launches
+
+on:
+  schedule:
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: cron-fetch-launches
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Call fetch-launches endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -e
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL and CRON_SECRET secrets must be set"; exit 1
+          fi
+          STATUS=$(curl -sS -o /tmp/out.json -w "%{http_code}" \
+            -H "x-cron-secret: $CRON_SECRET" \
+            --max-time 120 \
+            "$APP_URL/api/cron/fetch-launches")
+          echo "HTTP $STATUS"
+          cat /tmp/out.json
+          [ "$STATUS" = "200" ]
