@@ -33,13 +33,18 @@ const BANNED = [
   /\bdelve\b/i, /\bdelving\b/i, /\bin essence\b/i, /\bultimately\b/i,
   /\bfundamentally\b/i, /\bimagine if\b/i, /\ba stepping stone\b/i,
   /\btapestry\b/i, /\brealm of\b/i, /\bmyriad\b/i,
-  // em-dash and en-dash
-  /—/, /–/,
+  // dash variants — all AI fingerprints
+  /—/,             // U+2014 em-dash
+  /–/,             // U+2013 en-dash
+  /‑/,             // U+2011 non-breaking hyphen
+  /―/,             // U+2015 horizontal bar
   // hype openers that LLMs love
   /^(hi|hello|greetings|dear)\b/i,
   /^(congrats|congratulations)/i,
   /excited to|thrilled to|happy to introduce/i,
   /\bhope this email finds you well\b/i,
+  // meta references to scraping
+  /\b(your |the )?(h1|h2|h3|meta tag|hero text|homepage h1|landing page meta|og:|<meta)\b/i,
 ];
 
 const SYSTEM_PROMPT = `You write cold-outreach openers for ShipBoost, a directory and editorial spotlight platform for bootstrapped SaaS founders.
@@ -68,10 +73,12 @@ Output strictly this JSON shape, no prose, no markdown fence:
 }
 
 The opener must:
-- Reference one concrete detail from the product context (their tagline, h1, a feature, or about blurb)
+- Reference one concrete detail from the product context (their tagline, headline, a feature, or about blurb)
+- Refer to that detail NATURALLY — never mention "your H1", "the meta tag", "your hero text". A human wouldn't say "I noticed your H1" — they'd say "your pitch line" or "the way you position it" or just describe the detail directly.
 - Not pitch ShipBoost
 - Not ask a generic question
-- Sound like a person who actually looked at the site for 30 seconds
+- Sound like a person who actually looked at the site for 30 seconds, not a scraper reporting fields
+- Use plain "-" hyphens only. Never use em-dash, en-dash, or non-breaking hyphen.
 - Avoid all banned phrases above
 
 If the product context is thin or you can't find a specific detail to reference, write a clean factual opener using the product name and tagline only. Don't fabricate features.`;

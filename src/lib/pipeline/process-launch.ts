@@ -37,7 +37,7 @@ export async function processLaunch(
   const senderFirstName = opts.senderFirstName ?? process.env.SENDER_FIRST_NAME ?? "Tim";
   const shipboostDr = opts.shipboostDr ?? process.env.SHIPBOOST_DR ?? "44";
   const useLlm = process.env.USE_LLM_PERSONALIZATION === "1" && !!process.env.OPENROUTER_API_KEY;
-  const llmModel = process.env.LLM_MODEL ?? "deepseek/deepseek-v4-flash:free";
+  const llmModel = process.env.LLM_MODEL ?? "openai/gpt-oss-120b:free";
 
   const launch = await prisma.launch.upsert({
     where: { sourceId_externalId: { sourceId, externalId: raw.externalId } },
