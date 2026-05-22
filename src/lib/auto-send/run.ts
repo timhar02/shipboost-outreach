@@ -3,14 +3,15 @@ import { sendDraft } from "@/lib/gmail/send";
 import {
   autoSendDailyCap,
   autoSendEnabled,
+  autoSendMaxPerRun,
   nextAutoSendDelayMinutes,
 } from "./config";
 
 const STATE_ID = "default";
 
 export type AutoSendResult =
-  | { sent: true; draftId: string; nextAllowedAt: string; sentToday: number; dailyCap: number }
-  | { sent: false; reason: string; nextAllowedAt?: string; sentToday?: number; dailyCap?: number };
+  | { sent: true; sentCount: number; draftIds: string[]; nextAllowedAt: string; sentToday: number; dailyCap: number }
+  | { sent: false; reason: string; nextAllowedAt?: string; sentToday?: number; dailyCap?: number; pendingDrafts?: number };
 
 export async function runAutoSend(now = new Date()): Promise<AutoSendResult> {
   if (!autoSendEnabled()) return { sent: false, reason: "disabled" };
@@ -28,24 +29,39 @@ export async function runAutoSend(now = new Date()): Promise<AutoSendResult> {
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
   const dailyCap = autoSendDailyCap();
-  const sentToday = await prisma.outreachDraft.count({ where: { status: "SENT", sentAt: { gte: todayStart } } });
+  let sentToday = await prisma.outreachDraft.count({ where: { status: "SENT", sentAt: { gte: todayStart } } });
   if (sentToday >= dailyCap) return { sent: false, reason: "daily_cap_reached", sentToday, dailyCap };
 
-  const draft = await prisma.outreachDraft.findFirst({
-    where: { status: "PENDING_REVIEW" },
-    orderBy: { createdAt: "asc" },
-    select: { id: true },
-  });
-  if (!draft) return { sent: false, reason: "no_pending_drafts", sentToday, dailyCap };
+  const pendingDrafts = await prisma.outreachDraft.count({ where: { status: "PENDING_REVIEW" } });
+  if (!pendingDrafts) return { sent: false, reason: "no_pending_drafts", sentToday, dailyCap, pendingDrafts };
 
-  await sendDraft(draft.id);
+  const draftIds: string[] = [];
+  const maxPerRun = Math.min(autoSendMaxPerRun(), dailyCap - sentToday);
+  let scheduleCursor = state.nextAllowedAt ?? now;
 
-  const delayMinutes = nextAutoSendDelayMinutes();
-  const nextAllowedAt = new Date(now.getTime() + delayMinutes * 60_000);
+  while (draftIds.length < maxPerRun && sentToday < dailyCap && scheduleCursor <= now) {
+    const draft = await prisma.outreachDraft.findFirst({
+      where: { status: "PENDING_REVIEW" },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    if (!draft) break;
+
+    await sendDraft(draft.id);
+    draftIds.push(draft.id);
+    sentToday++;
+    scheduleCursor = new Date(scheduleCursor.getTime() + nextAutoSendDelayMinutes() * 60_000);
+  }
+
+  if (!draftIds.length) {
+    return { sent: false, reason: "no_pending_drafts", sentToday, dailyCap, pendingDrafts };
+  }
+
+  const nextAllowedAt = scheduleCursor > now ? scheduleCursor : new Date(now.getTime() + nextAutoSendDelayMinutes() * 60_000);
   await prisma.autoSendState.update({
     where: { id: STATE_ID },
     data: { lastSentAt: now, nextAllowedAt },
   });
 
-  return { sent: true, draftId: draft.id, nextAllowedAt: nextAllowedAt.toISOString(), sentToday: sentToday + 1, dailyCap };
+  return { sent: true, sentCount: draftIds.length, draftIds, nextAllowedAt: nextAllowedAt.toISOString(), sentToday, dailyCap };
 }

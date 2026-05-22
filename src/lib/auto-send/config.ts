@@ -14,6 +14,10 @@ export function autoSendMaxDelayMinutes(): number {
   return Math.max(autoSendMinDelayMinutes(), readPositiveInt("AUTO_SEND_MAX_DELAY_MINUTES", 45));
 }
 
+export function autoSendMaxPerRun(): number {
+  return Math.min(5, readPositiveInt("AUTO_SEND_MAX_PER_RUN", 3));
+}
+
 export function nextAutoSendDelayMinutes(): number {
   const min = autoSendMinDelayMinutes();
   const max = autoSendMaxDelayMinutes();
