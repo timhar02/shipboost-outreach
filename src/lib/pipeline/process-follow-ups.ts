@@ -1,5 +1,5 @@
 import { prisma } from "@/server/db/client";
-import { pollReplies } from "@/lib/zoho/replies";
+import { pollReplies } from "@/lib/gmail/replies";
 import { followUpTemplates } from "@/lib/draft/follow-up-templates";
 import { selectTemplate } from "@/lib/draft/select";
 import { renderTemplate } from "@/lib/draft/render";

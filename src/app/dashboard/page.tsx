@@ -15,6 +15,7 @@ export default async function DashboardPage() {
     },
   });
 
+  // eslint-disable-next-line react-hooks/purity -- Server dashboard buckets need the current time for follow-up status.
   const now = Date.now();
   const cutoff = now - FOLLOWUP_DAYS * 24 * 60 * 60 * 1000;
 

@@ -7,7 +7,7 @@ const PUBLIC = [
   /^\/api\/cron\//,
   /^\/api\/pixel\//,
   /^\/api\/ingest\//,
-  /^\/api\/zoho\/callback$/,
+  /^\/api\/gmail\/callback$/,
   /^\/api\/debug\//,
   /^\/api\/admin\//,
 ];

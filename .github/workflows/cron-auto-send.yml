@@ -1,0 +1,33 @@
+name: Cron - auto send
+
+# Check every 10 minutes all day. The app enforces the 20-45 minute
+# randomized send spacing and sends at most one draft per call.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: cron-auto-send
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call auto-send endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -e
+          URL="${APP_URL%/}/api/cron/auto-send"
+          echo "Calling: $URL"
+          STATUS=$(curl -sSL -o /tmp/out.json -w "%{http_code}" \
+            -H "x-cron-secret: $CRON_SECRET" \
+            --max-time 90 \
+            "$URL")
+          echo "HTTP $STATUS"
+          cat /tmp/out.json
+          [ "$STATUS" = "200" ]

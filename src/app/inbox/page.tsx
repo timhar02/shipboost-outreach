@@ -1,6 +1,7 @@
 import { prisma } from "@/server/db/client";
 import { InboxClient, type DraftView } from "./InboxClient";
 import { sourceUrl, sourceLabel } from "@/lib/sources/source-url";
+import { autoSendDailyCap } from "@/lib/auto-send/config";
 
 export const dynamic = "force-dynamic";
 
@@ -38,5 +39,5 @@ export default async function InboxPage() {
       },
     };
   });
-  return <InboxClient drafts={drafts} sentToday={sentToday} />;
+  return <InboxClient drafts={drafts} sentToday={sentToday} dailyCap={autoSendDailyCap()} />;
 }

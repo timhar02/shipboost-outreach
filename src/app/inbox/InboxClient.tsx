@@ -11,7 +11,7 @@ export type DraftView = {
   source: { kind: string; label: string; url: string | null };
 };
 
-export function InboxClient({ drafts: initial, sentToday }: { drafts: DraftView[]; sentToday: number }) {
+export function InboxClient({ drafts: initial, sentToday, dailyCap }: { drafts: DraftView[]; sentToday: number; dailyCap: number }) {
   const [drafts, setDrafts] = useState(initial);
   const [activeId, setActiveId] = useState<string | null>(initial[0]?.id ?? null);
   const [editing, setEditing] = useState(false);
@@ -41,7 +41,14 @@ export function InboxClient({ drafts: initial, sentToday }: { drafts: DraftView[
     const res = await fetch(`/api/drafts/${active.id}/send`, { method: "POST" });
     setBusy(false);
     if (res.ok) remove(active.id);
-    else alert(`Send failed: ${await res.text()}`);
+    else {
+      const text = await res.text();
+      if (text.includes("No Gmail credential")) {
+        alert("Gmail is not connected. Visit /api/gmail/authorize to connect your account.");
+      } else {
+        alert(`Send failed: ${text}`);
+      }
+    }
   }, [active, busy]);
 
   const skip = useCallback(async () => {
@@ -70,8 +77,11 @@ export function InboxClient({ drafts: initial, sentToday }: { drafts: DraftView[
     <main className="grid grid-cols-[320px_1fr] h-screen">
       <aside className="border-r border-zinc-800 overflow-y-auto">
         <div className="p-3 text-xs text-zinc-500 border-b border-zinc-800 flex items-center justify-between">
-          <span>{drafts.length} pending · sent today: {sentToday}/30</span>
-          <a href="/dashboard" className="text-zinc-400 hover:text-zinc-200 underline">pipeline</a>
+          <span>{drafts.length} pending · sent today: {sentToday}/{dailyCap}</span>
+          <div className="flex gap-3">
+            <a href="/api/gmail/authorize" className="text-zinc-400 hover:text-zinc-200 underline">connect gmail</a>
+            <a href="/dashboard" className="text-zinc-400 hover:text-zinc-200 underline">pipeline</a>
+          </div>
         </div>
         {drafts.map((d) => (
           <button

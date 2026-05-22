@@ -47,7 +47,7 @@ vi.mock("@/server/db/client", () => {
     prisma: {
       source: {
         upsert: async ({ where, create }: { where: { kind: string }; create: Row }) => {
-          if (!db.sources.has(where.kind)) db.sources.set(where.kind, { id: `s_${where.kind}`, ...create });
+          if (!db.sources.has(where.kind)) db.sources.set(where.kind, { ...create, id: `s_${where.kind}` });
           return db.sources.get(where.kind)!;
         },
       },
@@ -55,7 +55,7 @@ vi.mock("@/server/db/client", () => {
         upsert: async ({ create }: { create: Row & { sourceId: string; externalId: string } }) => {
           const key = `${create.sourceId}:${create.externalId}`;
           if (db.launches.has(key)) return db.launches.get(key)!;
-          const row = { id: `l_${db.launches.size}`, ...create };
+          const row = { ...create, id: `l_${db.launches.size}` };
           db.launches.set(key, row); return row;
         },
       },
@@ -65,14 +65,14 @@ vi.mock("@/server/db/client", () => {
           (where.domain && db.contactsByDomain.get(where.domain)) ||
           null,
         create: async ({ data }: { data: Row & { email: string; domain: string } }) => {
-          const row = { id: `c_${db.contactsByEmail.size}`, ...data };
+          const row = { ...data, id: `c_${db.contactsByEmail.size}` };
           db.contactsByEmail.set(data.email, row);
           db.contactsByDomain.set(data.domain, row);
           return row;
         },
       },
       outreachDraft: {
-        create: async ({ data }: { data: Row }) => { const row = { id: `d_${db.drafts.length}`, ...data }; db.drafts.push(row); return row; },
+        create: async ({ data }: { data: Row }) => { const row = { ...data, id: `d_${db.drafts.length}` }; db.drafts.push(row); return row; },
         count: async () => db.drafts.length,
       },
     },

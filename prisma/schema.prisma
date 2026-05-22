@@ -36,6 +36,10 @@ enum Direction {
   IN
 }
 
+enum EmailProvider {
+  GMAIL
+}
+
 enum DiscoveredFrom {
   CONTACT_PAGE
   ABOUT_PAGE
@@ -111,22 +115,36 @@ model OutreachEvent {
 }
 
 model EmailMessage {
-  id            String        @id @default(cuid())
-  draft         OutreachDraft @relation(fields: [draftId], references: [id])
-  draftId       String
-  zohoMessageId String        @unique
-  direction     Direction
-  subject       String
-  snippet       String
-  headers       Json
-  receivedAt    DateTime      @default(now())
+  id                String        @id @default(cuid())
+  draft             OutreachDraft @relation(fields: [draftId], references: [id])
+  draftId           String
+  providerMessageId String        @unique
+  providerThreadId  String?
+  direction         Direction
+  subject           String
+  snippet           String
+  headers           Json
+  receivedAt        DateTime      @default(now())
+
+  @@index([providerThreadId])
 }
 
-model ZohoCredential {
+model EmailCredential {
   id           String   @id @default(cuid())
-  accountId    String
+  provider     EmailProvider @default(GMAIL)
+  accountEmail String
   refreshToken String
   scope        String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@unique([provider, accountEmail])
+}
+
+model AutoSendState {
+  id            String   @id
+  lastSentAt    DateTime?
+  nextAllowedAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
