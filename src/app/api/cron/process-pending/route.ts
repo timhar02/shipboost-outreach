@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // How many Launch rows without a Contact to process per call.
-// Stay under maxDuration: email scrape ~5-10s each.
-const BATCH = 5;
+// Keep the default low so external cron services with 30s timeouts complete.
+const DEFAULT_BATCH = 2;
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
@@ -22,13 +22,14 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const batch = readBatch(req);
     // Find oldest pending Launch rows that have never been processed.
     // (Don't re-try rows where the email scrape already failed — they'd loop forever.)
     const pending = await prisma.launch.findMany({
       where: { processedAt: null },
       include: { source: true },
       orderBy: { fetchedAt: "asc" },
-      take: BATCH,
+      take: batch,
     });
 
     const result = {
@@ -75,4 +76,11 @@ export async function GET(req: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+function readBatch(req: NextRequest): number {
+  const raw = req.nextUrl.searchParams.get("batch") ?? process.env.PROCESS_PENDING_BATCH;
+  const parsed = raw ? Number.parseInt(raw, 10) : DEFAULT_BATCH;
+  if (!Number.isFinite(parsed) || parsed < 1) return DEFAULT_BATCH;
+  return Math.min(parsed, 5);
 }
