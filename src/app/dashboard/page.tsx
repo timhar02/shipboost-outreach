@@ -3,6 +3,8 @@ import { DashboardClient, type Card, type Bucket } from "./DashboardClient";
 import { sourceUrl, sourceLabel } from "@/lib/sources/source-url";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 const FOLLOWUP_DAYS = 5;
 

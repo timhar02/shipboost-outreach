@@ -3,6 +3,8 @@ import { extractContext } from "@/lib/scrape/extract-context";
 import { personalize } from "@/lib/draft/personalize";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 export const maxDuration = 60;
 
 /**

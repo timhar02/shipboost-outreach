@@ -3,6 +3,8 @@ import { autoSendDailyCap, autoSendEnabled, autoSendMaxPerRun } from "@/lib/auto
 import { prisma } from "@/server/db/client";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   const secret = process.env.CRON_SECRET;

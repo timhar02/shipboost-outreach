@@ -4,6 +4,10 @@ import { convert } from "html-to-text";
 import DOMPurify from "isomorphic-dompurify";
 import { prisma } from "@/server/db/client";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
 const Patch = z.object({ subject: z.string().min(1).max(200), bodyHtml: z.string().min(1) });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {

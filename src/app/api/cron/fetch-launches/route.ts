@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { runFetchAndQueue } from "@/lib/pipeline/fetch-and-queue";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {

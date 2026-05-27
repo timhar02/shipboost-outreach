@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/server/db/client";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 export const maxDuration = 60;
 
 /**

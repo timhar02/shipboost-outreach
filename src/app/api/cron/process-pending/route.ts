@@ -4,6 +4,8 @@ import { processLaunch } from "@/lib/pipeline/process-launch";
 import type { RawLaunch } from "@/lib/sources/types";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 export const maxDuration = 60;
 
 // How many Launch rows without a Contact to process per call.

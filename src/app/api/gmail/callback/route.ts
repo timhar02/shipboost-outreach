@@ -2,6 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { exchangeCodeForRefreshToken, GMAIL_SCOPES } from "@/lib/gmail/client";
 import { prisma } from "@/server/db/client";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   const code = req.nextUrl.searchParams.get("code");
   const state = req.nextUrl.searchParams.get("state");

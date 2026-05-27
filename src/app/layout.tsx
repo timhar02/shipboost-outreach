@@ -1,6 +1,10 @@
 import "./globals.css";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
+
 export const metadata: Metadata = { title: "ShipBoost Outreach" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

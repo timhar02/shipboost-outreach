@@ -4,6 +4,8 @@ import { sourceUrl, sourceLabel } from "@/lib/sources/source-url";
 import { autoSendDailyCap } from "@/lib/auto-send/config";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 export default async function InboxPage() {
   const rows = await prisma.outreachDraft.findMany({

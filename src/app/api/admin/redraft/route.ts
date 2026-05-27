@@ -7,6 +7,8 @@ import { selectTemplate } from "@/lib/draft/select";
 import { hybridTemplates } from "@/lib/draft/hybrid-templates";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 export const maxDuration = 60;
 
 /**
