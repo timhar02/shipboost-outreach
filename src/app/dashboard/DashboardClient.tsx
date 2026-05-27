@@ -52,14 +52,30 @@ function timeAgo(iso: string | null): string {
 export function DashboardClient({ cards }: { cards: Card[] }) {
   const [showArchive, setShowArchive] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  const filteredCards = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return cards;
+    return cards.filter((c) => {
+      const searchable = [
+        c.launch.name,
+        c.launch.url,
+        c.contact.domain,
+        c.contact.email,
+        c.contact.name ?? "",
+      ].join(" ").toLowerCase();
+      return searchable.includes(q);
+    });
+  }, [cards, query]);
 
   const buckets = useMemo(() => {
     const m: Record<Bucket, Card[]> = {
       pending: [], sent: [], opened: [], awaiting_followup: [], followed_up: [], replied: [], archive: [],
     };
-    for (const c of cards) m[c.bucket].push(c);
+    for (const c of filteredCards) m[c.bucket].push(c);
     return m;
-  }, [cards]);
+  }, [filteredCards]);
 
   const skip = async (id: string) => {
     setBusyId(id);
@@ -77,6 +93,34 @@ export function DashboardClient({ cards }: { cards: Card[] }) {
           <span className="text-zinc-700">{cards.length} total</span>
         </nav>
       </header>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <label className="relative block w-full sm:max-w-md">
+          <span className="sr-only">Search products</span>
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search product name, domain, or URL"
+            className="w-full rounded border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-zinc-600"
+          />
+        </label>
+        <div className="flex items-center gap-3 text-xs text-zinc-600">
+          {query.trim() ? (
+            <>
+              <span>{filteredCards.length} match{filteredCards.length === 1 ? "" : "es"}</span>
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="text-zinc-500 underline hover:text-zinc-300"
+              >
+                clear
+              </button>
+            </>
+          ) : (
+            <span>Search across product name, domain, URL, and email.</span>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-6 gap-3 overflow-x-auto pb-4">
         {COLUMNS.map((col) => (

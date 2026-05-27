@@ -13,7 +13,7 @@ import type { Template } from "./select";
  *   {{shipboost_dr}}          - DR number (env, default 44)
  */
 
-const SLOTS_LEFT = 14;
+const SLOTS_LEFT = 7;
 const SLOTS_TOTAL = 20;
 const CTA_URL = "https://shipboost.io/submit";
 const SIG = `<p>{{sender_first_name}}<br/><a href="https://shipboost.io">shipboost.io</a></p>`;
