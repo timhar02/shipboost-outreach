@@ -6,6 +6,7 @@ import {
   autoSendMaxPerRun,
   nextAutoSendDelayMinutes,
 } from "./config";
+import { followUpsEnabled } from "@/lib/pipeline/process-follow-ups";
 
 const STATE_ID = "default";
 
@@ -32,7 +33,12 @@ export async function runAutoSend(now = new Date()): Promise<AutoSendResult> {
   let sentToday = await prisma.outreachDraft.count({ where: { status: "SENT", sentAt: { gte: todayStart } } });
   if (sentToday >= dailyCap) return { sent: false, reason: "daily_cap_reached", sentToday, dailyCap };
 
-  const pendingDrafts = await prisma.outreachDraft.count({ where: { status: "PENDING_REVIEW" } });
+  const pendingWhere = {
+    status: "PENDING_REVIEW" as const,
+    ...(followUpsEnabled() ? {} : { parentDraftId: null }),
+  };
+
+  const pendingDrafts = await prisma.outreachDraft.count({ where: pendingWhere });
   if (!pendingDrafts) return { sent: false, reason: "no_pending_drafts", sentToday, dailyCap, pendingDrafts };
 
   const draftIds: string[] = [];
@@ -41,7 +47,7 @@ export async function runAutoSend(now = new Date()): Promise<AutoSendResult> {
 
   while (draftIds.length < maxPerRun && sentToday < dailyCap && scheduleCursor <= now) {
     const draft = await prisma.outreachDraft.findFirst({
-      where: { status: "PENDING_REVIEW" },
+      where: pendingWhere,
       orderBy: { createdAt: "asc" },
       select: { id: true },
     });

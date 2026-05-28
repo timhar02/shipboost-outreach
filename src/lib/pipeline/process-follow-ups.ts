@@ -6,8 +6,16 @@ import { renderTemplate } from "@/lib/draft/render";
 
 const FOLLOW_UP_AFTER_DAYS = 5;
 
-export async function runFollowUps(): Promise<{ replied: number; followUpsQueued: number }> {
+export function followUpsEnabled(): boolean {
+  return process.env.FOLLOW_UPS_ENABLED === "1";
+}
+
+export async function runFollowUps(): Promise<{ replied: number; followUpsQueued: number; disabled?: boolean }> {
   const { matched } = await pollReplies();
+
+  if (!followUpsEnabled()) {
+    return { replied: matched, followUpsQueued: 0, disabled: true };
+  }
 
   const cutoff = new Date(Date.now() - FOLLOW_UP_AFTER_DAYS * 24 * 60 * 60 * 1000);
   const candidates = await prisma.outreachDraft.findMany({

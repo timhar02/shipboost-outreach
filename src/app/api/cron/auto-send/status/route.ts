@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { autoSendDailyCap, autoSendEnabled, autoSendMaxPerRun } from "@/lib/auto-send/config";
+import { followUpsEnabled } from "@/lib/pipeline/process-follow-ups";
 import { prisma } from "@/server/db/client";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +17,13 @@ export async function GET(req: NextRequest) {
   const now = new Date();
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
+  const pendingWhere = {
+    status: "PENDING_REVIEW" as const,
+    ...(followUpsEnabled() ? {} : { parentDraftId: null }),
+  };
   const [state, pendingDrafts, sentToday, lastSent] = await Promise.all([
     prisma.autoSendState.findUnique({ where: { id: "default" } }),
-    prisma.outreachDraft.count({ where: { status: "PENDING_REVIEW" } }),
+    prisma.outreachDraft.count({ where: pendingWhere }),
     prisma.outreachDraft.count({ where: { status: "SENT", sentAt: { gte: todayStart } } }),
     prisma.outreachDraft.findFirst({
       where: { status: "SENT" },
@@ -34,6 +39,7 @@ export async function GET(req: NextRequest) {
     due: !state?.nextAllowedAt || state.nextAllowedAt <= now,
     state,
     pendingDrafts,
+    followUpsEnabled: followUpsEnabled(),
     sentToday,
     dailyCap: autoSendDailyCap(),
     maxPerRun: autoSendMaxPerRun(),
