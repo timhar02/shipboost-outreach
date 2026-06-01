@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "ShipBoost Outreach" };
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="bg-zinc-950 text-zinc-100 min-h-screen">{children}</body>
+      <body className="min-h-screen bg-[#080a09] text-zinc-100">{children}</body>
     </html>
   );
 }

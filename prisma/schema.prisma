@@ -148,3 +148,52 @@ model AutoSendState {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
+
+enum ConversionType {
+  PREMIUM_LAUNCH
+  AD
+}
+
+enum ConversionMatchStatus {
+  MATCHED_DOMAIN
+  MATCHED_EMAIL
+  POSSIBLE
+  CONFIRMED
+  REJECTED
+  ORGANIC
+}
+
+/// A paid conversion pulled from the main ShipBoost app (separate DB) and
+/// attributed back to a cold-email contact. `id` is the source row id from
+/// my-app (Submission.id or SponsorPlacement.id), so re-syncs upsert cleanly.
+model Conversion {
+  id                 String                @id
+  type               ConversionType
+  websiteDomain      String
+  founderEmail       String?
+  productName        String
+  amountCents        Int
+  currency           String                @default("USD")
+  paidAt             DateTime
+  matchStatus        ConversionMatchStatus @default(ORGANIC)
+  matchedContactId   String?
+  matchedDraftId     String?
+  matchedTemplateKey String?
+  matchConfidence    Float?
+  pulledAt           DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@index([type])
+  @@index([matchStatus])
+  @@index([matchedTemplateKey])
+  @@index([websiteDomain])
+  @@index([paidAt])
+}
+
+/// Singleton cursor row for the hourly conversions pull.
+model ConversionSyncState {
+  id         String    @id
+  lastPaidAt DateTime?
+  lastRunAt  DateTime?
+  updatedAt  DateTime  @updatedAt
+}

@@ -74,43 +74,80 @@ export function InboxClient({ drafts: initial, sentToday, dailyCap }: { drafts: 
   }, [move, send, skip, editing]);
 
   return (
-    <main className="grid grid-cols-[320px_1fr] h-screen">
-      <aside className="border-r border-zinc-800 overflow-y-auto">
-        <div className="p-3 text-xs text-zinc-500 border-b border-zinc-800 flex items-center justify-between">
-          <span>{drafts.length} pending · sent today: {sentToday}/{dailyCap}</span>
-          <div className="flex gap-3">
-            <a href="/api/gmail/authorize" className="text-zinc-400 hover:text-zinc-200 underline">connect gmail</a>
-            <a href="/dashboard" className="text-zinc-400 hover:text-zinc-200 underline">pipeline</a>
+    <main className="ops-grid-bg min-h-screen text-zinc-100">
+      <div className="grid min-h-screen lg:grid-cols-[360px_1fr]">
+        <aside className="border-b border-zinc-800 bg-[#0c0f0d]/95 lg:h-screen lg:border-b-0 lg:border-r lg:border-zinc-800">
+          <div className="border-b border-zinc-800 p-4">
+            <div className="ops-kicker">Review queue</div>
+            <div className="mt-2 flex items-end justify-between gap-3">
+              <div>
+                <h1 className="text-2xl font-black tracking-tight text-zinc-50">Inbox Control</h1>
+                <p className="mt-1 text-xs text-zinc-500">
+                  {drafts.length} pending | sent today: {sentToday}/{dailyCap}
+                </p>
+              </div>
+              <div className="rounded-md border border-lime-300/25 bg-[#101410] px-3 py-2 text-right">
+                <div className="text-[10px] font-black uppercase tracking-widest text-zinc-600">Cap</div>
+                <div className="text-lg font-black text-lime-300">{dailyCap - sentToday}</div>
+              </div>
+            </div>
+            <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
+              <a
+                href="/dashboard"
+                className="rounded-md bg-lime-300 px-3 py-2 text-zinc-950 transition hover:bg-lime-200"
+              >
+                Pipeline
+              </a>
+              <a
+                href="/dashboard/conversions"
+                className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-zinc-300 transition hover:border-lime-300/70 hover:text-lime-200"
+              >
+                Attribution
+              </a>
+              <a
+                href="/api/gmail/authorize"
+                className="rounded-md border border-zinc-800 px-3 py-2 text-zinc-500 transition hover:border-zinc-600 hover:text-zinc-200"
+              >
+                Connect Gmail
+              </a>
+            </div>
           </div>
-        </div>
-        {drafts.map((d) => (
-          <button
-            key={d.id}
-            onClick={() => { setActiveId(d.id); setEditing(false); }}
-            className={`w-full text-left p-3 border-b border-zinc-900 hover:bg-zinc-900 ${d.id === activeId ? "bg-zinc-900" : ""}`}
-          >
-            <div className="font-medium truncate">{d.launch.name}</div>
-            <div className="text-xs text-zinc-500 truncate">{d.contact.email}</div>
-            <div className="text-xs text-zinc-600 truncate">{d.subject}</div>
-          </button>
-        ))}
-      </aside>
-      <section className="overflow-y-auto p-6">
-        {!active ? (
-          <div className="text-zinc-500">Inbox zero.</div>
-        ) : (
-          <DraftPanel
-            key={active.id}
-            draft={active}
-            editing={editing}
-            setEditing={setEditing}
-            onSend={send}
-            onSkip={skip}
-            busy={busy}
-            onUpdated={(patch) => setDrafts((ds) => ds.map((d) => d.id === active.id ? { ...d, ...patch } : d))}
-          />
-        )}
-      </section>
+          <div className="max-h-[36vh] overflow-y-auto lg:max-h-none lg:h-[calc(100vh-177px)]">
+            {drafts.map((d) => (
+              <button
+                key={d.id}
+                onClick={() => { setActiveId(d.id); setEditing(false); }}
+                className={`w-full border-b border-zinc-900 p-3 text-left transition hover:bg-lime-300/5 ${d.id === activeId ? "border-l-4 border-l-lime-300 bg-[#101410]" : "border-l-4 border-l-transparent"}`}
+              >
+                <div className="truncate text-sm font-bold text-zinc-100">{d.launch.name}</div>
+                <div className="mt-1 truncate text-xs text-zinc-500">{d.contact.email}</div>
+                <div className="mt-1 truncate text-[11px] text-zinc-600">{d.subject}</div>
+              </button>
+            ))}
+            {drafts.length === 0 && (
+              <div className="p-4 text-sm text-zinc-600">Inbox zero.</div>
+            )}
+          </div>
+        </aside>
+        <section className="min-w-0 overflow-y-auto p-4 sm:p-5 lg:h-screen lg:p-6">
+          {!active ? (
+            <div className="ops-panel flex min-h-[50vh] items-center justify-center rounded-lg text-zinc-500">
+              Inbox zero.
+            </div>
+          ) : (
+            <DraftPanel
+              key={active.id}
+              draft={active}
+              editing={editing}
+              setEditing={setEditing}
+              onSend={send}
+              onSkip={skip}
+              busy={busy}
+              onUpdated={(patch) => setDrafts((ds) => ds.map((d) => d.id === active.id ? { ...d, ...patch } : d))}
+            />
+          )}
+        </section>
+      </div>
     </main>
   );
 }
@@ -146,60 +183,67 @@ function DraftPanel({
   </style></head><body>${draft.bodyHtml}</body></html>`;
 
   return (
-    <div className="max-w-2xl space-y-4">
-      <header className="flex items-baseline justify-between">
-        <div>
-          <h1 className="text-lg font-medium">{draft.launch.name}</h1>
-          <p className="text-sm text-zinc-500">{draft.launch.tagline}</p>
-          <p className="text-xs text-zinc-600 mt-1">
-            <a href={draft.launch.url} target="_blank" rel="noreferrer" className="underline">{draft.launch.url}</a>
-          </p>
-          <p className="text-xs text-zinc-600 mt-1">
-            found via {draft.source.url ? (
-              <a href={draft.source.url} target="_blank" rel="noreferrer" className="text-zinc-400 hover:text-zinc-200 underline">
-                {draft.source.label}
-              </a>
-            ) : (
-              <span className="text-zinc-500">{draft.source.label}</span>
-            )}
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="text-sm">{draft.contact.email}</div>
-          {draft.contact.name && <div className="text-xs text-zinc-500">{draft.contact.name}</div>}
-          <div className="text-xs text-zinc-600">via {draft.contact.discoveredFrom.toLowerCase()}</div>
-          <div className="text-xs text-zinc-700 mt-1">tmpl: {draft.templateKey}</div>
+    <div className="mx-auto max-w-5xl space-y-4">
+      <header className="ops-panel rounded-lg p-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="min-w-0">
+            <div className="ops-kicker">Draft review</div>
+            <h1 className="mt-2 truncate text-2xl font-black tracking-tight text-zinc-50">
+              {draft.launch.name}
+            </h1>
+            <p className="mt-1 text-sm text-zinc-500">{draft.launch.tagline}</p>
+            <p className="mt-2 truncate text-xs text-zinc-600">
+              <a href={draft.launch.url} target="_blank" rel="noreferrer" className="underline underline-offset-2 hover:text-zinc-300">{draft.launch.url}</a>
+            </p>
+            <p className="mt-1 text-xs text-zinc-600">
+              Found via {draft.source.url ? (
+                <a href={draft.source.url} target="_blank" rel="noreferrer" className="text-zinc-400 underline underline-offset-2 hover:text-zinc-200">
+                  {draft.source.label}
+                </a>
+              ) : (
+                <span className="text-zinc-500">{draft.source.label}</span>
+              )}
+            </p>
+          </div>
+          <div className="shrink-0 rounded-md border border-zinc-800 bg-[#101410] p-3 text-left lg:text-right">
+            <div className="text-sm font-semibold text-zinc-200">{draft.contact.email}</div>
+            {draft.contact.name && <div className="mt-1 text-xs text-zinc-500">{draft.contact.name}</div>}
+            <div className="mt-1 text-xs text-zinc-600">via {draft.contact.discoveredFrom.toLowerCase()}</div>
+            <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-zinc-700">
+              tmpl: {draft.templateKey}
+            </div>
+          </div>
         </div>
       </header>
-      <div className="rounded border border-zinc-800 p-4 space-y-3 bg-zinc-950">
+      <div className="ops-panel rounded-lg p-4">
         {editing ? (
-          <>
+          <div className="space-y-3">
             <input value={subject} onChange={(e) => setSubject(e.target.value)}
-              className="w-full px-2 py-1 bg-zinc-900 border border-zinc-800 rounded" />
+              className="w-full rounded-md border border-zinc-800 bg-[#101410] px-3 py-2 text-sm text-zinc-100 outline-none focus:border-lime-300/70" />
             <textarea value={bodyHtml} onChange={(e) => setBodyHtml(e.target.value)}
               rows={14}
-              className="w-full px-2 py-1 bg-zinc-900 border border-zinc-800 rounded font-mono text-sm" />
-            <div className="flex gap-2">
-              <button onClick={save} className="px-3 py-1.5 bg-zinc-100 text-zinc-900 rounded">Save</button>
-              <button onClick={() => setEditing(false)} className="px-3 py-1.5 bg-zinc-800 rounded">Cancel</button>
+              className="w-full rounded-md border border-zinc-800 bg-[#101410] px-3 py-2 font-mono text-sm text-zinc-100 outline-none focus:border-lime-300/70" />
+            <div className="flex flex-wrap gap-2">
+              <button onClick={save} className="rounded-md bg-lime-300 px-3 py-1.5 text-xs font-black text-zinc-950 transition hover:bg-lime-200">Save</button>
+              <button onClick={() => setEditing(false)} className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-bold text-zinc-300 transition hover:border-zinc-500">Cancel</button>
             </div>
-          </>
+          </div>
         ) : (
-          <>
-            <div className="font-medium">{draft.subject}</div>
+          <div className="space-y-3">
+            <div className="text-sm font-bold text-zinc-100">{draft.subject}</div>
             <iframe
               title="email preview"
               sandbox=""
               srcDoc={iframeDoc}
-              className="w-full h-80 bg-white rounded"
+              className="h-[520px] w-full rounded-md bg-white"
             />
-            <div className="flex gap-2 pt-2">
-              <button onClick={onSend} disabled={busy} className="px-3 py-1.5 bg-zinc-100 text-zinc-900 rounded disabled:opacity-50">Send (s)</button>
-              <button onClick={() => setEditing(true)} className="px-3 py-1.5 bg-zinc-800 rounded">Edit (e)</button>
-              <button onClick={onSkip} disabled={busy} className="px-3 py-1.5 bg-zinc-800 rounded">Skip (x)</button>
+            <div className="flex flex-wrap gap-2 pt-1">
+              <button onClick={onSend} disabled={busy} className="rounded-md bg-lime-300 px-3 py-1.5 text-xs font-black text-zinc-950 transition hover:bg-lime-200 disabled:opacity-50">Send (s)</button>
+              <button onClick={() => setEditing(true)} className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-bold text-zinc-300 transition hover:border-zinc-500">Edit (e)</button>
+              <button onClick={onSkip} disabled={busy} className="rounded-md border border-zinc-700 px-3 py-1.5 text-xs font-bold text-zinc-300 transition hover:border-zinc-500 disabled:opacity-50">Skip (x)</button>
             </div>
-            <div className="text-xs text-zinc-600">j/k navigate · e edit · s send · x skip</div>
-          </>
+            <div className="text-xs text-zinc-600">j/k navigate | e edit | s send | x skip</div>
+          </div>
         )}
       </div>
     </div>

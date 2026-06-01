@@ -55,7 +55,7 @@ export class HackerNewsSource implements LaunchSource {
 
   async fetchSince(since: Date): Promise<RawLaunch[]> {
     const unixTs = Math.floor(since.getTime() / 1000);
-    const url = `${ENDPOINT}?tags=show_hn&hitsPerPage=50&numericFilters=created_at_i>${unixTs}`;
+    const url = `${ENDPOINT}?tags=show_hn&hitsPerPage=100&numericFilters=created_at_i>${unixTs}`;
 
     const { statusCode, body } = await request(url, {
       method: "GET",

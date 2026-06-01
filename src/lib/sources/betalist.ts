@@ -10,7 +10,7 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 C
 
 // Number of homepage pagination pages to scrape. ~54 startups per page.
 // Page 1 = most recent. Higher pages = older.
-const PAGES = 2;
+const PAGES = 4;
 
 // Tagline reject (same shape as other adapters).
 const TAGLINE_DENY = [

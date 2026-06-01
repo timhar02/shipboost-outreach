@@ -22,7 +22,7 @@ const HOMEPAGE = "https://www.uneed.best/";
 const TOOL_URL = (slug) => `https://www.uneed.best/tool/${slug}`;
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/130";
 // Cap how many tools we resolve per run.
-const MAX_TOOLS = 100;
+const MAX_TOOLS = 150;
 const MAX_SHOW_MORE_CLICKS = 20;
 
 async function getTodaySlugs() {

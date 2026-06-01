@@ -1,0 +1,31 @@
+name: Cron - sync conversions
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: cron-sync-conversions
+  cancel-in-progress: false
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Call sync-conversions endpoint
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -e
+          URL="${APP_URL%/}/api/cron/sync-conversions"
+          echo "Calling: $URL"
+          STATUS=$(curl -sSL -o /tmp/out.json -w "%{http_code}" \
+            -H "x-cron-secret: $CRON_SECRET" \
+            --max-time 120 \
+            "$URL")
+          echo "HTTP $STATUS"
+          cat /tmp/out.json
+          [ "$STATUS" = "200" ]

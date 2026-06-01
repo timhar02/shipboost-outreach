@@ -1,1 +1,41 @@
 @import "tailwindcss";
+
+:root {
+  --ops-bg: #080a09;
+  --ops-panel: #0c0f0d;
+  --ops-panel-soft: #101410;
+  --ops-border: rgba(63, 63, 70, 0.8);
+  --ops-muted: #71717a;
+  --ops-accent: #bef264;
+}
+
+body {
+  background: var(--ops-bg);
+}
+
+.ops-grid-bg {
+  background-color: var(--ops-bg);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.ops-panel {
+  border: 1px solid var(--ops-border);
+  background: color-mix(in srgb, var(--ops-panel) 95%, transparent);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+
+.ops-card {
+  border: 1px solid var(--ops-border);
+  background: var(--ops-panel-soft);
+}
+
+.ops-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--ops-accent) 80%, transparent);
+}
