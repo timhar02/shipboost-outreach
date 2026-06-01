@@ -3,6 +3,7 @@ import robotsParser from "robots-parser";
 
 const UA = "ShipBoost-Outreach/1.0 (+https://shipboost.com)";
 const TIMEOUT_MS = 10_000;
+const robotsCache = new Map<string, boolean>();
 
 /** Agent with redirect following (up to 5 hops) baked in. */
 const redirectAgent = new Agent().compose(interceptors.redirect({ maxRedirections: 5 }));
@@ -40,14 +41,22 @@ export async function fetchHtml(url: string): Promise<string | null> {
 async function checkRobots(url: string): Promise<boolean> {
   try {
     const u = new URL(url);
+    const origin = u.origin;
+    const cached = robotsCache.get(origin);
+    if (cached !== undefined) return cached;
     const robotsUrl = `${u.protocol}//${u.host}/robots.txt`;
     const { statusCode, body } = await request(robotsUrl, {
       method: "GET", headers: { "user-agent": UA },
       headersTimeout: 5_000, bodyTimeout: 5_000,
     });
-    if (statusCode !== 200) return true;
+    if (statusCode !== 200) {
+      robotsCache.set(origin, true);
+      return true;
+    }
     const txt = await body.text();
-    return robotsParser(robotsUrl, txt).isAllowed(url, UA) ?? true;
+    const allowed = robotsParser(robotsUrl, txt).isAllowed(url, UA) ?? true;
+    robotsCache.set(origin, allowed);
+    return allowed;
   } catch {
     return true;
   }

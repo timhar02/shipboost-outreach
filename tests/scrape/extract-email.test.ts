@@ -69,4 +69,33 @@ describe("extractEmail", () => {
     const r = await extractEmail("https://acme.io");
     expect(r).toBeNull();
   });
+
+  it("discovers and follows contact-like homepage links", async () => {
+    vi.mocked(fetchHtml)
+      .mockResolvedValueOnce("<html><body><a href='/company/contact'>Contact sales</a></body></html>")
+      .mockResolvedValueOnce("<html><body>hello@acme.io</body></html>");
+    const r = await extractEmail("https://acme.io");
+    expect(r?.email).toBe("hello@acme.io");
+    expect(r?.source).toBe("CONTACT_PAGE");
+  });
+
+  it("finds emails hidden in raw html attributes", async () => {
+    vi.mocked(fetchHtml).mockResolvedValueOnce(
+      "<html><body>Contact us</body><script>window.__data={email:'sales@acme.io'}</script></html>",
+    );
+    const r = await extractEmail("https://acme.io");
+    expect(r?.email).toBe("sales@acme.io");
+  });
+
+  it("normalizes common obfuscated email formats", async () => {
+    vi.mocked(fetchHtml).mockResolvedValueOnce("<html><body>Reach us at hello [at] acme [dot] io</body></html>");
+    const r = await extractEmail("https://acme.io");
+    expect(r?.email).toBe("hello@acme.io");
+  });
+
+  it("cleans phone-number text accidentally joined to role emails", async () => {
+    vi.mocked(fetchHtml).mockResolvedValueOnce("<html><body>Call 555-1212 E-mail support@acme.io</body></html>");
+    const r = await extractEmail("https://acme.io");
+    expect(r?.email).toBe("support@acme.io");
+  });
 });

@@ -2,6 +2,7 @@ import { load } from "cheerio";
 import { fetchHtml } from "./fetch-html";
 
 const EMAIL_RE = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
+const CONTACT_LINK_RE = /\b(contact|about|team|support|help|press|media|imprint|legal|privacy|terms)\b/i;
 const PERSONAL_DOMAINS = new Set([
   "gmail.com", "hey.com", "fastmail.com", "proton.me", "protonmail.com", "icloud.com", "me.com",
 ]);
@@ -15,29 +16,45 @@ export async function extractEmail(siteUrl: string): Promise<EmailHit | null> {
   const siteDomain = site.hostname.replace(/^www\./, "").toLowerCase();
 
   const homepage = await fetchHtml(siteUrl);
+  const discoveredUrls: string[] = [];
   if (homepage) {
     const hit = scanHtml(homepage, siteDomain, "HOMEPAGE_FOOTER");
     if (hit) return hit;
+    discoveredUrls.push(...discoverContactUrls(homepage, site));
   }
   const FALLBACK_PATHS = [
     "/contact", "/contact-us",
     "/about", "/about-us",
-    "/team",
-    "/support", "/help",
-    "/press",
+    "/contact.html", "/contact-us.html", "/company/contact",
+    "/about.html", "/about-us.html", "/company", "/company/about",
+    "/team", "/team.html", "/people",
+    "/support", "/help", "/support/contact", "/help/contact",
+    "/press", "/media",
     "/community",
     "/careers", "/jobs",
-    "/imprint", "/legal",
+    "/imprint", "/legal", "/privacy", "/terms",
   ];
-  for (const path of FALLBACK_PATHS) {
-    const url = new URL(path, site).toString();
+  const urls = uniqueUrls([
+    ...discoveredUrls,
+    ...FALLBACK_PATHS.map((path) => new URL(path, site).toString()),
+  ], site);
+  for (const url of urls) {
     const html = await fetchHtml(url);
     if (!html) continue;
-    const source: DiscoveredFrom = path.startsWith("/about") ? "ABOUT_PAGE" : "CONTACT_PAGE";
+    const path = new URL(url).pathname;
+    const source = sourceForPath(path);
     const hit = scanHtml(html, siteDomain, source);
     if (hit) return hit;
   }
   return null;
+}
+
+function sourceForPath(path: string): DiscoveredFrom {
+  if (/\b(contact|support|help|press|media|imprint|legal|privacy|terms)\b/i.test(path)) {
+    return "CONTACT_PAGE";
+  }
+  if (/\b(about|company|team|people)\b/i.test(path)) return "ABOUT_PAGE";
+  return "CONTACT_PAGE";
 }
 
 function scanHtml(html: string, siteDomain: string, defaultSource: DiscoveredFrom): EmailHit | null {
@@ -55,12 +72,79 @@ function scanHtml(html: string, siteDomain: string, defaultSource: DiscoveredFro
   if (meta && isAcceptable(meta, siteDomain)) return { email: meta.toLowerCase(), source: "META_TAG" };
 
   const text = $("body").text();
-  const candidates = text.match(EMAIL_RE) ?? [];
+  const candidates = findEmailCandidates(`${text}\n${html}`);
   for (const raw of candidates) {
-    if (!isAcceptable(raw, siteDomain)) continue;
-    return { email: raw.toLowerCase(), name: guessNameNear(text, raw), source: defaultSource };
+    const email = cleanEmailCandidate(raw);
+    if (!isAcceptable(email, siteDomain)) continue;
+    return { email: email.toLowerCase(), name: guessNameNear(text, raw), source: defaultSource };
   }
   return null;
+}
+
+function discoverContactUrls(html: string, site: URL): string[] {
+  const $ = load(html);
+  return $("a[href]")
+    .map((_, el) => {
+      const $el = $(el);
+      const href = String($el.attr("href") || "").trim();
+      const label = `${$el.text()} ${href}`;
+      if (!CONTACT_LINK_RE.test(label)) return "";
+      try {
+        const url = new URL(href, site);
+        if (url.protocol !== "http:" && url.protocol !== "https:") return "";
+        if (url.hostname.replace(/^www\./, "").toLowerCase() !== site.hostname.replace(/^www\./, "").toLowerCase()) return "";
+        url.hash = "";
+        return url.toString();
+      } catch {
+        return "";
+      }
+    })
+    .get()
+    .filter(Boolean);
+}
+
+function uniqueUrls(urls: string[], site: URL): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const siteDomain = site.hostname.replace(/^www\./, "").toLowerCase();
+  for (const raw of urls) {
+    try {
+      const url = new URL(raw);
+      if (url.hostname.replace(/^www\./, "").toLowerCase() !== siteDomain) continue;
+      url.hash = "";
+      const key = url.toString();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(key);
+    } catch {
+      /* skip */
+    }
+  }
+  return out;
+}
+
+function findEmailCandidates(raw: string): string[] {
+  const candidates: string[] = raw.match(EMAIL_RE) ?? [];
+  const normalized = normalizeObfuscatedEmails(raw);
+  if (normalized !== raw) candidates.push(...(normalized.match(EMAIL_RE) ?? []));
+  return candidates;
+}
+
+function cleanEmailCandidate(raw: string): string {
+  const email = raw.toLowerCase();
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return email;
+  const role = local.match(/(hello|support|contact|sales|info|team|help)$/)?.[1];
+  if (role && local !== role) return `${role}@${domain}`;
+  return email;
+}
+
+function normalizeObfuscatedEmails(raw: string): string {
+  return raw
+    .replace(/\s*(?:\[|\()?at(?:\]|\))?\s*/gi, "@")
+    .replace(/\s*(?:\[|\()?dot(?:\]|\))?\s*/gi, ".")
+    .replace(/\s*\[\s*@\s*\]\s*/g, "@")
+    .replace(/\s*\(\s*@\s*\)\s*/g, "@");
 }
 
 function isAcceptable(email: string, siteDomain: string): boolean {
