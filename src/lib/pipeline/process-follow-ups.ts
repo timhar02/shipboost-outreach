@@ -5,6 +5,7 @@ import { selectTemplate } from "@/lib/draft/select";
 import { renderTemplate } from "@/lib/draft/render";
 
 const FOLLOW_UP_AFTER_DAYS = 5;
+const CONVERSION_BLOCK_STATUSES = ["MATCHED_DOMAIN", "MATCHED_EMAIL", "POSSIBLE", "CONFIRMED"] as const;
 
 export function followUpsEnabled(): boolean {
   return process.env.FOLLOW_UPS_ENABLED === "1";
@@ -18,9 +19,28 @@ export async function runFollowUps(): Promise<{ replied: number; followUpsQueued
   }
 
   const cutoff = new Date(Date.now() - FOLLOW_UP_AFTER_DAYS * 24 * 60 * 60 * 1000);
+  const conversions = await prisma.conversion.findMany({
+    where: {
+      matchStatus: { in: [...CONVERSION_BLOCK_STATUSES] },
+      OR: [
+        { matchedContactId: { not: null } },
+        { matchedDraftId: { not: null } },
+      ],
+    },
+    select: { matchedContactId: true, matchedDraftId: true },
+  });
+  const convertedContactIds = conversions
+    .map((conversion) => conversion.matchedContactId)
+    .filter((id): id is string => Boolean(id));
+  const convertedDraftIds = conversions
+    .map((conversion) => conversion.matchedDraftId)
+    .filter((id): id is string => Boolean(id));
+
   const candidates = await prisma.outreachDraft.findMany({
     where: {
       status: "SENT", sentAt: { lt: cutoff }, parentDraftId: null,
+      ...(convertedContactIds.length ? { contactId: { notIn: convertedContactIds } } : {}),
+      ...(convertedDraftIds.length ? { id: { notIn: convertedDraftIds } } : {}),
       events: { none: { kind: { in: ["REPLY", "FOLLOWUP_SENT"] } } },
     },
     include: { contact: { include: { launch: true } } },
