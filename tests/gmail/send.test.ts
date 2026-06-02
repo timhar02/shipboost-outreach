@@ -5,6 +5,7 @@ const getConnectedGmailAccount = vi.fn();
 const tx = vi.fn();
 const draftUpdate = vi.fn();
 const messageCreate = vi.fn();
+const findUniqueOrThrow = vi.fn();
 
 const draft = {
   id: "draft_1",
@@ -13,6 +14,7 @@ const draft = {
   body: "<p>Hello</p>",
   bodyText: "Hello",
   contact: { email: "founder@example.com" },
+  parentDraft: null,
 };
 
 vi.mock("@/lib/gmail/client", () => ({
@@ -23,7 +25,7 @@ vi.mock("@/lib/gmail/client", () => ({
 vi.mock("@/server/db/client", () => ({
   prisma: {
     outreachDraft: {
-      findUniqueOrThrow: vi.fn(async () => draft),
+      findUniqueOrThrow,
       count: vi.fn(async () => 0),
       update: draftUpdate,
     },
@@ -40,6 +42,7 @@ describe("sendDraft", () => {
     vi.clearAllMocks();
     process.env.SENDER_EMAIL = "tim.personal@gmail.com";
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+    findUniqueOrThrow.mockResolvedValue(draft);
     getConnectedGmailAccount.mockResolvedValue({ accountEmail: "tim.personal@gmail.com" });
     gmailFetch.mockResolvedValue({ id: "gmail_msg_1", threadId: "gmail_thread_1" });
   });
@@ -80,6 +83,68 @@ describe("sendDraft", () => {
         providerMessageId: "gmail_msg_1",
         providerThreadId: "gmail_thread_1",
         direction: "OUT",
+      }),
+    });
+  });
+
+  it("sends follow-ups in the original Gmail thread with reply headers", async () => {
+    tx.mockResolvedValue(undefined);
+    findUniqueOrThrow.mockResolvedValue({
+      ...draft,
+      id: "followup_1",
+      subject: "Re: Quick note",
+      body: "<p>Still useful?</p>",
+      bodyText: "Still useful?",
+      parentDraft: {
+        messages: [
+          {
+            providerMessageId: "gmail_parent_msg",
+            providerThreadId: "gmail_parent_thread",
+          },
+        ],
+      },
+    });
+    gmailFetch.mockImplementation(async (path: string) => {
+      if (path.startsWith("/users/me/messages/gmail_parent_msg")) {
+        return {
+          payload: {
+            headers: [
+              { name: "References", value: "<root@example.com>" },
+              { name: "Message-ID", value: "<parent@example.com>" },
+            ],
+          },
+        };
+      }
+      return { id: "gmail_followup_msg", threadId: "gmail_parent_thread" };
+    });
+    const { sendDraft } = await import("@/lib/gmail/send");
+
+    await expect(sendDraft("followup_1")).resolves.toEqual({
+      gmailMessageId: "gmail_followup_msg",
+      gmailThreadId: "gmail_parent_thread",
+    });
+
+    expect(gmailFetch).toHaveBeenCalledWith(
+      "/users/me/messages/gmail_parent_msg?format=metadata&metadataHeaders=Message-ID&metadataHeaders=References",
+    );
+    expect(gmailFetch).toHaveBeenCalledWith("/users/me/messages/send", {
+      method: "POST",
+      body: { raw: expect.any(String), threadId: "gmail_parent_thread" },
+    });
+    const sendCall = gmailFetch.mock.calls.find(([path]) => path === "/users/me/messages/send");
+    const raw = sendCall?.[1]?.body.raw as string;
+    const decoded = Buffer.from(raw.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    expect(decoded).toContain("In-Reply-To: <parent@example.com>");
+    expect(decoded).toContain("References: <root@example.com> <parent@example.com>");
+    expect(messageCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        draftId: "followup_1",
+        providerMessageId: "gmail_followup_msg",
+        providerThreadId: "gmail_parent_thread",
+        headers: {
+          "In-Reply-To": "<parent@example.com>",
+          References: "<root@example.com> <parent@example.com>",
+        },
       }),
     });
   });

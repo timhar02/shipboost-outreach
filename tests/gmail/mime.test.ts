@@ -37,4 +37,33 @@ describe("buildRawHtmlEmail", () => {
 
     expect(decodeBase64Url(raw)).toContain("Subject: =?UTF-8?B?");
   });
+
+  it("adds safe custom headers for threaded replies", () => {
+    const raw = buildRawHtmlEmail({
+      from: "tim.personal@gmail.com",
+      to: "founder@example.com",
+      subject: "Re: Quick note",
+      html: "<p>Following up</p>",
+      headers: {
+        "In-Reply-To": "<parent@example.com>",
+        References: "<root@example.com> <parent@example.com>",
+      },
+    });
+
+    const decoded = decodeBase64Url(raw);
+    expect(decoded).toContain("In-Reply-To: <parent@example.com>");
+    expect(decoded).toContain("References: <root@example.com> <parent@example.com>");
+  });
+
+  it("rejects unsafe custom header names", () => {
+    expect(() =>
+      buildRawHtmlEmail({
+        from: "tim.personal@gmail.com",
+        to: "founder@example.com",
+        subject: "Hello",
+        html: "<p>Hi</p>",
+        headers: { "Bad\r\nHeader": "value" },
+      }),
+    ).toThrow("Invalid email header name");
+  });
 });
