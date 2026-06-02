@@ -14,7 +14,7 @@ export const maxDuration = 60;
 /**
  * Regenerate PENDING_REVIEW drafts with LLM-personalized opener + subject,
  * rendered through the hybrid templates (which keep Premium Launch pitch,
- * editorial spotlight bonus, and DR-44 dofollow consistent on every email).
+ * editorial spotlight bonus, and DR-45 dofollow consistent on every email).
  *
  * Drains the queue in batches: each call processes up to BATCH drafts that
  * don't yet have a hybrid template_key.
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
 
   const llmModel = process.env.LLM_MODEL ?? "openai/gpt-oss-120b:free";
   const senderFirstName = process.env.SENDER_FIRST_NAME ?? "Tim";
-  const shipboostDr = process.env.SHIPBOOST_DR ?? "44";
+  const shipboostDr = process.env.SHIPBOOST_DR ?? "45";
 
   // Find PENDING_REVIEW drafts that haven't been migrated to a hybrid template yet.
   const drafts = await prisma.outreachDraft.findMany({

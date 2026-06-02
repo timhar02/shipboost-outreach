@@ -47,7 +47,7 @@ export async function runFollowUps(): Promise<{ replied: number; followUpsQueued
   });
 
   const senderFirstName = process.env.SENDER_FIRST_NAME ?? "Tim";
-  const shipboostDr = process.env.SHIPBOOST_DR ?? "44";
+  const shipboostDr = process.env.SHIPBOOST_DR ?? "45";
   let queued = 0;
 
   for (const parent of candidates) {

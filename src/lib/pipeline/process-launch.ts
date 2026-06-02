@@ -35,7 +35,7 @@ export async function processLaunch(
   opts: { senderFirstName?: string; shipboostDr?: string; useLlm?: boolean } = {},
 ): Promise<ProcessOutcome> {
   const senderFirstName = opts.senderFirstName ?? process.env.SENDER_FIRST_NAME ?? "Tim";
-  const shipboostDr = opts.shipboostDr ?? process.env.SHIPBOOST_DR ?? "44";
+  const shipboostDr = opts.shipboostDr ?? process.env.SHIPBOOST_DR ?? "45";
   // LLM personalization is opt-in per call. The cron-driven process-pending
   // path passes useLlm=false to stay under Vercel 60s. The /api/admin/redraft
   // path takes care of LLM-personalizing drafts in a separate, slower batch.
