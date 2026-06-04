@@ -19,7 +19,14 @@ type ReplyContext = {
   headers: Record<string, string>;
 };
 
-export async function sendDraft(draftId: string): Promise<{ gmailMessageId: string; gmailThreadId: string }> {
+type SendDraftOptions = {
+  skipDailyCap?: boolean;
+};
+
+export async function sendDraft(
+  draftId: string,
+  options: SendDraftOptions = {},
+): Promise<{ gmailMessageId: string; gmailThreadId: string }> {
   const draft = await prisma.outreachDraft.findUniqueOrThrow({
     where: { id: draftId },
     include: {
@@ -46,11 +53,13 @@ export async function sendDraft(draftId: string): Promise<{ gmailMessageId: stri
     throw new Error(`SENDER_EMAIL (${fromAddress}) does not match connected Gmail account (${connected.accountEmail})`);
   }
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const sentToday = await prisma.outreachDraft.count({ where: { status: "SENT", sentAt: { gte: todayStart } } });
-  const dailyCap = autoSendDailyCap();
-  if (sentToday >= dailyCap) throw new Error(`daily send cap reached (${dailyCap})`);
+  if (!options.skipDailyCap) {
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const sentToday = await prisma.outreachDraft.count({ where: { status: "SENT", sentAt: { gte: todayStart } } });
+    const dailyCap = autoSendDailyCap();
+    if (sentToday >= dailyCap) throw new Error(`daily send cap reached (${dailyCap})`);
+  }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const pixel = `<img src="${appUrl}/api/pixel/${draft.id}" width="1" height="1" alt="" style="display:block">`;
