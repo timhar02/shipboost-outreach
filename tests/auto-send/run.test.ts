@@ -6,6 +6,7 @@ const stateUpdate = vi.fn();
 const stateFindUnique = vi.fn();
 const draftCount = vi.fn();
 const draftFindFirst = vi.fn();
+const draftUpdate = vi.fn();
 const conversionFindMany = vi.fn();
 
 vi.mock("@/lib/gmail/send", () => ({ sendDraft }));
@@ -20,6 +21,7 @@ vi.mock("@/server/db/client", () => ({
     outreachDraft: {
       count: draftCount,
       findFirst: draftFindFirst,
+      update: draftUpdate,
     },
     conversion: {
       findMany: conversionFindMany,
@@ -42,6 +44,7 @@ describe("runAutoSend", () => {
     stateUpsert.mockResolvedValue({ nextAllowedAt: null });
     stateUpdate.mockResolvedValue({});
     sendDraft.mockResolvedValue({ gmailMessageId: "msg", gmailThreadId: "thread" });
+    draftUpdate.mockResolvedValue({});
   });
 
   it("sends first emails and follow-ups through independent lanes", async () => {
@@ -130,5 +133,35 @@ describe("runAutoSend", () => {
         followUp: { pending: 20, sentToday: 6, dailyCap: 25, due: false },
       },
     });
+  });
+
+  it("marks invalid-recipient drafts failed and keeps the lane moving", async () => {
+    draftCount.mockImplementation(async ({ where }) => {
+      if (where.status === "SENT") return 0;
+      if (where.parentDraftId === null) return 2;
+      return 0;
+    });
+    draftFindFirst
+      .mockResolvedValueOnce({ id: "bad_first" })
+      .mockResolvedValueOnce({ id: "good_first" });
+    sendDraft
+      .mockRejectedValueOnce(new Error('Gmail /users/me/messages/send 400: {"error":{"message":"Invalid To header","reason":"invalidArgument"}}'))
+      .mockResolvedValueOnce({ gmailMessageId: "msg", gmailThreadId: "thread" });
+    const { runAutoSend } = await import("@/lib/auto-send/run");
+
+    await expect(runAutoSend(new Date("2026-06-04T00:00:00.000Z"))).resolves.toMatchObject({
+      sent: true,
+      sentCount: 1,
+      draftIds: ["good_first"],
+      lanes: {
+        first: {
+          sent: true,
+          sentCount: 1,
+          draftIds: ["good_first"],
+          failedDraftIds: ["bad_first"],
+        },
+      },
+    });
+    expect(draftUpdate).toHaveBeenCalledWith({ where: { id: "bad_first" }, data: { status: "FAILED" } });
   });
 });

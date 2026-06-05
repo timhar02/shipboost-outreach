@@ -25,6 +25,7 @@ export type LaneSendResult = {
   reason?: string;
   sentCount: number;
   draftIds: string[];
+  failedDraftIds: string[];
   nextAllowedAt?: string;
   sentToday: number;
   dailyCap: number;
@@ -165,6 +166,7 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
       reason: "disabled",
       sentCount: 0,
       draftIds: [],
+      failedDraftIds: [],
       sentToday: 0,
       dailyCap: config.dailyCap,
       pendingDrafts: 0,
@@ -198,6 +200,7 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
       reason: "daily_cap_reached",
       sentCount: 0,
       draftIds: [],
+      failedDraftIds: [],
       sentToday,
       dailyCap: config.dailyCap,
       pendingDrafts,
@@ -210,6 +213,7 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
       reason: "no_pending_drafts",
       sentCount: 0,
       draftIds: [],
+      failedDraftIds: [],
       sentToday,
       dailyCap: config.dailyCap,
       pendingDrafts,
@@ -222,6 +226,7 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
       reason: "waiting",
       sentCount: 0,
       draftIds: [],
+      failedDraftIds: [],
       nextAllowedAt: state.nextAllowedAt.toISOString(),
       sentToday,
       dailyCap: config.dailyCap,
@@ -230,11 +235,15 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
   }
 
   const draftIds: string[] = [];
+  const failedDraftIds: string[] = [];
   const maxPerRun = Math.min(autoSendMaxPerRun(), config.dailyCap - sentToday);
   let sentCount = sentToday;
   let scheduleCursor = state.nextAllowedAt ?? now;
+  let attempts = 0;
+  const maxAttempts = maxPerRun + 10;
 
-  while (draftIds.length < maxPerRun && sentCount < config.dailyCap && scheduleCursor <= now) {
+  while (draftIds.length < maxPerRun && sentCount < config.dailyCap && scheduleCursor <= now && attempts < maxAttempts) {
+    attempts++;
     const draft = await prisma.outreachDraft.findFirst({
       where: laneWhere,
       orderBy: { createdAt: "asc" },
@@ -242,7 +251,15 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
     });
     if (!draft) break;
 
-    await sendDraft(draft.id, { skipDailyCap: true });
+    try {
+      await sendDraft(draft.id, { skipDailyCap: true });
+    } catch (err) {
+      if (!isPermanentDraftFailure(err)) throw err;
+      await prisma.outreachDraft.update({ where: { id: draft.id }, data: { status: "FAILED" } });
+      failedDraftIds.push(draft.id);
+      continue;
+    }
+
     draftIds.push(draft.id);
     sentCount++;
     scheduleCursor = new Date(scheduleCursor.getTime() + nextAutoSendDelayMinutes() * 60_000);
@@ -251,9 +268,10 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
   if (!draftIds.length) {
     return {
       sent: false,
-      reason: "no_pending_drafts",
+      reason: failedDraftIds.length ? "send_failed" : "no_pending_drafts",
       sentCount: 0,
       draftIds,
+      failedDraftIds,
       sentToday,
       dailyCap: config.dailyCap,
       pendingDrafts,
@@ -270,6 +288,7 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
     sent: true,
     sentCount: draftIds.length,
     draftIds,
+    failedDraftIds,
     nextAllowedAt: nextAllowedAt.toISOString(),
     sentToday: sentCount,
     dailyCap: config.dailyCap,
@@ -313,4 +332,9 @@ async function getBlockedRecipients(): Promise<BlockedRecipients> {
       .map((conversion) => conversion.matchedDraftId)
       .filter((id): id is string => Boolean(id)),
   };
+}
+
+function isPermanentDraftFailure(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err);
+  return message.includes("Invalid To header") || message.includes('"reason": "invalidArgument"');
 }
