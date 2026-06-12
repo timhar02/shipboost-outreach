@@ -8,6 +8,11 @@ export type RenderVars = {
   website_domain: string;
   sender_first_name: string;
   shipboost_dr: string;
+  // The $9 code + its "good through" date. Always populated by the pipeline call
+  // sites (process-launch / process-follow-ups); substitute() throws if a template
+  // references either while empty, which is the intended safety net.
+  discount_code?: string;
+  discount_deadline?: string;
   // Optional — used by hybrid templates that delegate the opener + subject to the LLM.
   personalized_subject?: string;
   personalized_opener?: string;
