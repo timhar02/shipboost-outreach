@@ -56,6 +56,8 @@ export async function runFollowUps(): Promise<{ replied: number; followUpsQueued
     const pool = eligible.length ? eligible : followUpTemplates;
     const tmpl = selectTemplate(c.domain, pool);
 
+    // Follow-ups intentionally omit the discount code/price. The weekly code may
+    // have expired by the time a follow-up sends, so these stay value + CTA only.
     const rendered = renderTemplate(tmpl, {
       first_name: c.name ?? undefined,
       product_name: c.launch.name,

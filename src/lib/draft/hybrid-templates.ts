@@ -11,7 +11,9 @@ import type { Template } from "./select";
  *   {{product_name}}          - product name
  *   {{website_domain}}        - founder's domain
  *   {{sender_first_name}}     - sender first name (env)
- *   {{shipboost_dr}}          - DR number (env, default 44)
+ *   {{shipboost_dr}}          - DR number (env, default 45)
+ *   {{discount_code}}         - the $9 Premium Launch code (per-day, from my-app)
+ *   {{discount_deadline}}     - "Month D" the code closes
  */
 
 const CTA_URL = "https://shipboost.io/submit";
@@ -22,11 +24,10 @@ export const hybridTemplates: Template[] = [
     key: "hyb-03-second-job",
     subject: "{{personalized_subject}}",
     bodyHtml: `<p>{{personalized_opener}}</p>
-<p>Most launches do one job well: a spike on day one. The harder job is staying discoverable when launch week ends, and that is the job most platforms drop.</p>
+<p>Most launches do one job well, a spike on day one. The harder job is staying discoverable when launch week ends, and that is the job most platforms drop.</p>
 <p>ShipBoost handles the second job. A permanent listing that keeps surfacing through categories, tags, and alternatives pages, plus a hand-written editorial spotlight on /blog that keeps ranking, with a DR {{shipboost_dr}} dofollow link to {{website_domain}}.</p>
-<p>Premium Launch is $19 right now during Early Access, going to $29 soon. Founding already sold out.</p>
+<p>Premium Launch is $9 right now, normally $19. Use code {{discount_code}} at checkout, it closes {{discount_deadline}}.</p>
 <p>Worth a look for {{product_name}}? <a href="${CTA_URL}">${CTA_URL}</a></p>
-<p>If this isn't a fit, reply with one word and I'll step off.</p>
 ${SIG}`,
   },
 ];

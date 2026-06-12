@@ -85,6 +85,10 @@ model Contact {
   discoveredFrom DiscoveredFrom
   drafts         OutreachDraft[]
   createdAt      DateTime        @default(now())
+  // The $9 Premium Launch code (and its "good through" display date) stamped at
+  // first-touch and reused across every follow-up to this contact.
+  discountCode     String?
+  discountDeadline DateTime?
 }
 
 model OutreachDraft {

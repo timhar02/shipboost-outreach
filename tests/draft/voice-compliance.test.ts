@@ -35,4 +35,19 @@ describe("voice-profile compliance", () => {
     const all = [...templates, ...followUpTemplates].map((t) => t.key);
     expect(new Set(all).size).toBe(all.length);
   });
+  it("carries no stale pricing copy ($29 / sold out)", () => {
+    for (const t of [...templates, ...followUpTemplates]) {
+      const blob = `${t.subject}\n${t.bodyHtml}`;
+      expect(blob, `${t.key} mentions $29`).not.toMatch(/\$29/);
+      expect(blob, `${t.key} mentions sold out`).not.toMatch(/sold out/i);
+    }
+  });
+  it("first-touch templates pitch the $9 code with a deadline", () => {
+    for (const t of templates) {
+      const blob = t.bodyHtml;
+      expect(blob, `${t.key} missing $9`).toMatch(/\$9\b/);
+      expect(blob, `${t.key} missing {{discount_code}}`).toContain("{{discount_code}}");
+      expect(blob, `${t.key} missing {{discount_deadline}}`).toContain("{{discount_deadline}}");
+    }
+  });
 });
