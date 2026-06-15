@@ -23,12 +23,14 @@ enum DraftStatus {
   SENT
   SKIPPED
   FAILED
+  BOUNCED
 }
 
 enum EventKind {
   OPEN
   REPLY
   FOLLOWUP_SENT
+  BOUNCE
 }
 
 enum Direction {
@@ -89,6 +91,8 @@ model Contact {
   // first-touch and reused across every follow-up to this contact.
   discountCode     String?
   discountDeadline DateTime?
+  suppressedAt     DateTime?
+  suppressionReason String?
 }
 
 model OutreachDraft {

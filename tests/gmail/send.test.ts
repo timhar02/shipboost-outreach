@@ -2,18 +2,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const gmailFetch = vi.fn();
 const getConnectedGmailAccount = vi.fn();
+const validateRecipientEmail = vi.fn();
 const tx = vi.fn();
 const draftUpdate = vi.fn();
+const contactUpdate = vi.fn();
 const messageCreate = vi.fn();
 const findUniqueOrThrow = vi.fn();
 
 const draft = {
   id: "draft_1",
+  contactId: "contact_1",
   status: "PENDING_REVIEW",
   subject: "Quick note",
   body: "<p>Hello</p>",
   bodyText: "Hello",
-  contact: { email: "founder@example.com" },
+  contact: { id: "contact_1", email: "founder@example.com", suppressedAt: null, suppressionReason: null },
   parentDraft: null,
 };
 
@@ -21,6 +24,8 @@ vi.mock("@/lib/gmail/client", () => ({
   gmailFetch,
   getConnectedGmailAccount,
 }));
+
+vi.mock("@/lib/email/validation", () => ({ validateRecipientEmail }));
 
 vi.mock("@/server/db/client", () => ({
   prisma: {
@@ -31,6 +36,9 @@ vi.mock("@/server/db/client", () => ({
     },
     emailMessage: {
       create: messageCreate,
+    },
+    contact: {
+      update: contactUpdate,
     },
     $transaction: tx,
   },
@@ -44,6 +52,7 @@ describe("sendDraft", () => {
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
     findUniqueOrThrow.mockResolvedValue(draft);
     getConnectedGmailAccount.mockResolvedValue({ accountEmail: "tim.personal@gmail.com" });
+    validateRecipientEmail.mockResolvedValue({ ok: true, source: "mx" });
     gmailFetch.mockResolvedValue({ id: "gmail_msg_1", threadId: "gmail_thread_1" });
   });
 
@@ -62,6 +71,38 @@ describe("sendDraft", () => {
     await expect(sendDraft("draft_1")).rejects.toThrow("does not match connected Gmail account");
     expect(gmailFetch).not.toHaveBeenCalled();
     expect(draftUpdate).not.toHaveBeenCalledWith({ where: { id: "draft_1" }, data: { status: "FAILED" } });
+  });
+
+  it("throws before Gmail send when the contact is suppressed", async () => {
+    findUniqueOrThrow.mockResolvedValue({
+      ...draft,
+      contact: {
+        ...draft.contact,
+        suppressedAt: new Date("2026-06-14T00:00:00.000Z"),
+        suppressionReason: "bounce:address_not_found",
+      },
+    });
+    const { sendDraft } = await import("@/lib/gmail/send");
+
+    await expect(sendDraft("draft_1")).rejects.toThrow("recipient suppressed: bounce:address_not_found");
+    expect(gmailFetch).not.toHaveBeenCalled();
+  });
+
+  it("marks invalid recipients failed and suppresses contact before Gmail send", async () => {
+    validateRecipientEmail.mockResolvedValue({ ok: false, source: "mx", reason: "no_mx" });
+    const { sendDraft } = await import("@/lib/gmail/send");
+
+    await expect(sendDraft("draft_1")).rejects.toThrow("recipient validation failed: no_mx");
+    expect(gmailFetch).not.toHaveBeenCalled();
+    expect(draftUpdate).toHaveBeenCalledWith({ where: { id: "draft_1" }, data: { status: "FAILED" } });
+    expect(contactUpdate).toHaveBeenCalledWith({
+      where: { id: "contact_1" },
+      data: {
+        suppressedAt: expect.any(Date),
+        suppressionReason: "validation:no_mx",
+      },
+    });
+    expect(tx).toHaveBeenCalled();
   });
 
   it("sends through Gmail and stores message and thread ids", async () => {

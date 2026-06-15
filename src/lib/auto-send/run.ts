@@ -336,5 +336,10 @@ async function getBlockedRecipients(): Promise<BlockedRecipients> {
 
 function isPermanentDraftFailure(err: unknown): boolean {
   const message = err instanceof Error ? err.message : String(err);
-  return message.includes("Invalid To header") || message.includes('"reason": "invalidArgument"');
+  return (
+    message.includes("Invalid To header") ||
+    message.includes('"reason": "invalidArgument"') ||
+    message.includes("recipient validation failed:") ||
+    message.includes("recipient suppressed:")
+  );
 }

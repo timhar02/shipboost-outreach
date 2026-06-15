@@ -164,4 +164,34 @@ describe("runAutoSend", () => {
     });
     expect(draftUpdate).toHaveBeenCalledWith({ where: { id: "bad_first" }, data: { status: "FAILED" } });
   });
+
+  it("marks recipient validation failures permanent and keeps the lane moving", async () => {
+    draftCount.mockImplementation(async ({ where }) => {
+      if (where.status === "SENT") return 0;
+      if (where.parentDraftId === null) return 2;
+      return 0;
+    });
+    draftFindFirst
+      .mockResolvedValueOnce({ id: "bad_first" })
+      .mockResolvedValueOnce({ id: "good_first" });
+    sendDraft
+      .mockRejectedValueOnce(new Error("recipient validation failed: no_mx"))
+      .mockResolvedValueOnce({ gmailMessageId: "msg", gmailThreadId: "thread" });
+    const { runAutoSend } = await import("@/lib/auto-send/run");
+
+    await expect(runAutoSend(new Date("2026-06-04T00:00:00.000Z"))).resolves.toMatchObject({
+      sent: true,
+      sentCount: 1,
+      draftIds: ["good_first"],
+      lanes: {
+        first: {
+          sent: true,
+          sentCount: 1,
+          draftIds: ["good_first"],
+          failedDraftIds: ["bad_first"],
+        },
+      },
+    });
+    expect(draftUpdate).toHaveBeenCalledWith({ where: { id: "bad_first" }, data: { status: "FAILED" } });
+  });
 });

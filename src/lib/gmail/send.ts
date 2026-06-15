@@ -2,6 +2,7 @@ import { prisma } from "@/server/db/client";
 import { getConnectedGmailAccount, gmailFetch } from "./client";
 import { buildRawHtmlEmail } from "./mime";
 import { autoSendDailyCap } from "@/lib/auto-send/config";
+import { validateRecipientEmail } from "@/lib/email/validation";
 
 type GmailSendResponse = {
   id?: string;
@@ -43,6 +44,9 @@ export async function sendDraft(
     },
   });
   if (draft.status !== "PENDING_REVIEW") throw new Error(`draft not pending (status=${draft.status})`);
+  if (draft.contact.suppressedAt) {
+    throw new Error(`recipient suppressed: ${draft.contact.suppressionReason ?? "unknown"}`);
+  }
 
   const connected = await getConnectedGmailAccount();
   if (!connected) throw new Error("No Gmail credential - visit /api/gmail/authorize");
@@ -59,6 +63,21 @@ export async function sendDraft(
     const sentToday = await prisma.outreachDraft.count({ where: { status: "SENT", sentAt: { gte: todayStart } } });
     const dailyCap = autoSendDailyCap();
     if (sentToday >= dailyCap) throw new Error(`daily send cap reached (${dailyCap})`);
+  }
+
+  const validation = await validateRecipientEmail(draft.contact.email);
+  if (!validation.ok) {
+    await prisma.$transaction([
+      prisma.outreachDraft.update({ where: { id: draftId }, data: { status: "FAILED" } }),
+      prisma.contact.update({
+        where: { id: draft.contactId },
+        data: {
+          suppressedAt: new Date(),
+          suppressionReason: `validation:${validation.reason}`,
+        },
+      }),
+    ]);
+    throw new Error(`recipient validation failed: ${validation.reason}`);
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";

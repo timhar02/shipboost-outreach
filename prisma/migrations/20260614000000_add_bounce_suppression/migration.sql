@@ -1,0 +1,4 @@
+ALTER TYPE "DraftStatus" ADD VALUE 'BOUNCED';
+ALTER TYPE "EventKind" ADD VALUE 'BOUNCE';
+ALTER TABLE "Contact" ADD COLUMN "suppressedAt" TIMESTAMP(3);
+ALTER TABLE "Contact" ADD COLUMN "suppressionReason" TEXT;
