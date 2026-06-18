@@ -34,6 +34,17 @@ export function sourceUrl(
       // PH stores the post node — its `url` is the PH post URL.
       if (r && typeof r.url === "string" && r.url.includes("producthunt.com")) return r.url;
       return null;
+    case "STARTUPBASE":
+      return "https://startupbase.io/";
+    case "PITCHWALL":
+      if (r && typeof r.detailUrl === "string") return r.detailUrl;
+      return "https://pitchwall.co/";
+    case "LAUNCHING_NEXT":
+      if (r && typeof r.pageUrl === "string") return r.pageUrl;
+      return "https://www.launchingnext.com/";
+    case "SAASHUB":
+      if (r && typeof r.detailUrl === "string") return r.detailUrl;
+      return "https://www.saashub.com/submit";
     case "FOUNDRLIST":
     case "PEERLIST":
     case "SCROLLLAUNCH":
@@ -54,5 +65,9 @@ export function sourceLabel(kind: SourceKind): string {
     case "SCROLLLAUNCH": return "ScrollLaunch";
     case "HACKER_NEWS": return "Hacker News";
     case "BETALIST": return "BetaList";
+    case "STARTUPBASE": return "StartupBase";
+    case "PITCHWALL": return "PitchWall";
+    case "LAUNCHING_NEXT": return "Launching Next";
+    case "SAASHUB": return "SaaSHub";
   }
 }

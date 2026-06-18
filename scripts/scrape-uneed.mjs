@@ -24,6 +24,7 @@ const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 C
 // Cap how many tools we resolve per run.
 const MAX_TOOLS = 150;
 const MAX_SHOW_MORE_CLICKS = 20;
+const INGEST_CHUNK_SIZE = 25;
 
 async function getTodaySlugs() {
   const browser = await chromium.launch({ headless: true });
@@ -156,17 +157,28 @@ async function resolveToolPage(slug) {
 }
 
 async function postBatch(launches) {
-  const res = await fetch(`${INGEST_URL.replace(/\/$/, "")}/api/ingest/launches`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-ingest-secret": INGEST_SECRET,
-    },
-    body: JSON.stringify({ source: "UNEED", launches }),
-  });
-  const body = await res.text();
-  console.log(`Ingest response ${res.status}:`, body);
-  if (!res.ok) process.exit(1);
+  for (let i = 0; i < launches.length; i += INGEST_CHUNK_SIZE) {
+    const chunk = launches.slice(i, i + INGEST_CHUNK_SIZE).map((launch) => ({
+      ...launch,
+      launchedAt: normalizeIsoDate(launch.launchedAt),
+    }));
+    const res = await fetch(`${INGEST_URL.replace(/\/$/, "")}/api/ingest/launches`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-ingest-secret": INGEST_SECRET,
+      },
+      body: JSON.stringify({ source: "UNEED", launches: chunk }),
+    });
+    const body = await res.text();
+    console.log(`Ingest chunk ${i / INGEST_CHUNK_SIZE + 1} response ${res.status}:`, body);
+    if (!res.ok) process.exit(1);
+  }
+}
+
+function normalizeIsoDate(value) {
+  const date = value ? new Date(value) : new Date();
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
 }
 
 (async () => {

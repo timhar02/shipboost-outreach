@@ -18,6 +18,10 @@ export interface LaunchSource {
     | "FOUNDRLIST"
     | "SCROLLLAUNCH"
     | "HACKER_NEWS"
-    | "BETALIST";
+    | "BETALIST"
+    | "STARTUPBASE"
+    | "PITCHWALL"
+    | "LAUNCHING_NEXT"
+    | "SAASHUB";
   fetchSince(date: Date): Promise<RawLaunch[]>;
 }

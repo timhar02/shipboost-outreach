@@ -27,6 +27,20 @@ vi.mock("@/lib/sources/betalist", () => ({
   },
 }));
 
+vi.mock("@/lib/sources/startupbase", () => ({
+  StartupBaseSource: class {
+    kind = "STARTUPBASE" as const;
+    async fetchSince() { return []; }
+  },
+}));
+
+vi.mock("@/lib/sources/launching-next", () => ({
+  LaunchingNextSource: class {
+    kind = "LAUNCHING_NEXT" as const;
+    async fetchSince() { return []; }
+  },
+}));
+
 vi.mock("@/lib/scrape/extract-email", () => ({
   extractEmail: vi.fn().mockResolvedValue({ email: "sarah@trywavefly.com", name: "Sarah", source: "ABOUT_PAGE" }),
 }));

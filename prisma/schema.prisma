@@ -16,6 +16,18 @@ enum SourceKind {
   SCROLLLAUNCH
   HACKER_NEWS
   BETALIST
+  STARTUPBASE
+  PITCHWALL
+  LAUNCHING_NEXT
+  SAASHUB
+}
+
+enum LaunchProcessStatus {
+  PENDING
+  DRAFT_CREATED
+  SKIPPED_DEDUP
+  SKIPPED_NO_EMAIL
+  SKIPPED_ERROR
 }
 
 enum DraftStatus {
@@ -72,9 +84,12 @@ model Launch {
   // Set the first time we run processLaunch on this row. Pending queue picks
   // rows where processedAt IS NULL so we never retry the same dead-end forever.
   processedAt DateTime?
+  processStatus LaunchProcessStatus @default(PENDING)
+  processError  String?
   contact     Contact?
 
   @@unique([sourceId, externalId])
+  @@index([processStatus])
 }
 
 model Contact {

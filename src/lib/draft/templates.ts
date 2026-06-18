@@ -22,41 +22,14 @@ ${OFFER}
 ${SIG}`,
   },
   {
-    key: "out-03-anti-definition-named",
-    subject: "not a launch site",
-    bodyHtml: `<p>{{first_name}}, most launch sites give you one spike and then {{product_name}} turns into a listing nobody clicks again.</p>
-<p>ShipBoost is built for the month after. Not a Product Hunt clone, not a generic tools list. A hand-written editorial spotlight on /blog that keeps ranking, plus a DR {{shipboost_dr}} dofollow backlink, so people still find {{website_domain}} through categories, tags, and alternatives pages long after launch week.</p>
-${OFFER}
-<p>Want the week you pick reserved? <a href="${CTA_URL}">${CTA_URL}</a></p>
-${SIG}`,
-  },
-  {
-    key: "out-06-observation-noname",
-    subject: "who finds you in a month",
-    bodyHtml: `<p>{{tagline}}. That's clear positioning, already more than most launch posts earn.</p>
-<p>The open question is whether the buyer who missed launch day still finds {{website_domain}} a month later. That's the part ShipBoost handles. A permanent listing across categories, tags, and alternatives pages, plus a hand written editorial spotlight on /blog with a DR {{shipboost_dr}} dofollow link.</p>
+    key: "out-04-mechanic-first-noname",
+    subject: "about {{product_name}}",
+    bodyHtml: `<p>Hey,</p>
+<p>A launch should turn into a public asset. Something buyers can find, compare, and come back to after the launch window closes. Most directories don't do that work. ShipBoost does.</p>
+<p>{{product_name}} just launched. {{tagline}}. The listing should keep earning trust through categories, tags, and alternatives when the right buyer is searching later.</p>
+<p>Premium Launch covers it. A reserved launch week, permanent listing, plus an editorial spotlight on the blog with a DR {{shipboost_dr}} dofollow link to {{website_domain}}.</p>
 ${OFFER}
 <p><a href="${CTA_URL}">${CTA_URL}</a></p>
-${SIG}`,
-  },
-  {
-    key: "out-09-trust-named",
-    subject: "trust before week two",
-    bodyHtml: `<p>Hey {{first_name}}, most founders treat credibility for {{product_name}} as a post-launch problem. Launch first, earn trust later.</p>
-<p>The order is backwards. The listing still working in month two is the one buyers land on when they compare alternatives, and by then the decision is half made.</p>
-<p>That listing is what Premium Launch builds for {{website_domain}}: a hand-written editorial spotlight on our blog with a guaranteed DR {{shipboost_dr}} dofollow backlink, something that keeps ranking after launch week ends.</p>
-${OFFER}
-<p>Worth a look? <a href="${CTA_URL}">${CTA_URL}</a></p>
-${SIG}`,
-  },
-  {
-    key: "out-10-second-job-noname",
-    subject: "the second job",
-    bodyHtml: `<p>A launch does one job. It buys you a spike, and {{product_name}} can get that anywhere.</p>
-<p>The second job is harder. Staying discoverable after launch week, when the listing goes quiet and nobody is searching your name yet.</p>
-<p>That is the part ShipBoost is built for. A hand-written editorial spotlight on /blog that keeps ranking, with a DR {{shipboost_dr}} dofollow backlink pointing at {{website_domain}}. A permanent asset, not a one-day spike.</p>
-${OFFER}
-<p>If you want {{product_name}} still showing up months from now: <a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },
   {
@@ -70,13 +43,13 @@ ${OFFER}
 ${SIG}`,
   },
   {
-    key: "out-12-ai-recommend-named",
-    subject: "did ChatGPT name {{product_name}}",
-    bodyHtml: `<p>{{first_name}}, try this. Ask ChatGPT for the best tool in your space. Does {{product_name}} get named, or does a competitor?</p>
-<p>Models recommend what the open web confirms. They cross check a product against independent sites before they say its name, and a product that only exists on its own domain looks unverified.</p>
-<p>That is the gap a ShipBoost listing closes for {{website_domain}}. A hand written editorial on /blog describing what {{product_name}} does and who it's for, on a DR {{shipboost_dr}} domain the models can read. The dofollow link is the bonus, not the point.</p>
+    key: "out-12-positioning-noname",
+    subject: "{{product_name}} and positioning past launch",
+    bodyHtml: `<p>Hey,</p>
+<p>{{tagline}} reads like real positioning, not a launch day line. That earns a longer second life if the listing exists to support it.</p>
+<p>ShipBoost is where {{website_domain}} stays discoverable after launch week rotates. Categories, tags, alternatives pages. Plus a hand written editorial spotlight on /blog with a DR {{shipboost_dr}} dofollow backlink.</p>
 ${OFFER}
-<p>Worth closing that gap? <a href="${CTA_URL}">${CTA_URL}</a></p>
+<p><a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },
 ];

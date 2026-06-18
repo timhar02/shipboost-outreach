@@ -10,7 +10,7 @@ import { formatDeadline } from "@/lib/draft/format-deadline";
 import { getOutreachDiscount } from "@/lib/draft/discount";
 import { personalize } from "@/lib/draft/personalize";
 import type { RawLaunch } from "@/lib/sources/types";
-import type { SourceKind } from "@prisma/client";
+import type { LaunchProcessStatus, SourceKind } from "@prisma/client";
 
 export type ProcessOutcome =
   | { kind: "DRAFT_CREATED"; draftId: string; contactEmail: string; usedLlm: boolean }
@@ -55,26 +55,38 @@ export async function processLaunch(
       launchedAt: raw.launchedAt,
       raw: raw.raw as object,
       processedAt: new Date(),
+      processStatus: "PENDING",
+      processError: null,
     },
-    update: { processedAt: new Date() },
+    update: { processedAt: new Date(), processStatus: "PENDING", processError: null },
   });
 
   let domain: string;
   try {
     domain = new URL(raw.url).hostname.replace(/^www\./, "").toLowerCase();
   } catch {
+    await markLaunchProcessed(launch.id, "SKIPPED_ERROR", "invalid URL");
     return { kind: "SKIPPED_ERROR", error: "invalid URL" };
   }
 
   const dupeByDomain = await prisma.contact.findUnique({ where: { domain } });
-  if (dupeByDomain) return { kind: "SKIPPED_DEDUP" };
+  if (dupeByDomain) {
+    await markLaunchProcessed(launch.id, "SKIPPED_DEDUP");
+    return { kind: "SKIPPED_DEDUP" };
+  }
 
   const hit = await extractEmail(raw.url);
   await jitter();
-  if (!hit) return { kind: "SKIPPED_NO_EMAIL" };
+  if (!hit) {
+    await markLaunchProcessed(launch.id, "SKIPPED_NO_EMAIL");
+    return { kind: "SKIPPED_NO_EMAIL" };
+  }
 
   const dupeByEmail = await prisma.contact.findUnique({ where: { email: hit.email } });
-  if (dupeByEmail) return { kind: "SKIPPED_DEDUP" };
+  if (dupeByEmail) {
+    await markLaunchProcessed(launch.id, "SKIPPED_DEDUP");
+    return { kind: "SKIPPED_DEDUP" };
+  }
 
   let contact;
   try {
@@ -88,6 +100,7 @@ export async function processLaunch(
       },
     });
   } catch (err) {
+    await markLaunchProcessed(launch.id, "SKIPPED_ERROR", err instanceof Error ? err.message : String(err));
     return { kind: "SKIPPED_ERROR", error: err instanceof Error ? err.message : String(err) };
   }
 
@@ -144,6 +157,7 @@ export async function processLaunch(
           bodyText: renderedHybrid.bodyText,
         },
       });
+      await markLaunchProcessed(launch.id, "DRAFT_CREATED");
       void sourceKind;
       return { kind: "DRAFT_CREATED", draftId: draft.id, contactEmail: contact.email, usedLlm: true };
     } catch (err) {
@@ -178,6 +192,22 @@ export async function processLaunch(
     },
   });
 
+  await markLaunchProcessed(launch.id, "DRAFT_CREATED");
   void sourceKind;
   return { kind: "DRAFT_CREATED", draftId: draft.id, contactEmail: contact.email, usedLlm };
+}
+
+async function markLaunchProcessed(
+  launchId: string,
+  processStatus: LaunchProcessStatus,
+  processError: string | null = null,
+): Promise<void> {
+  await prisma.launch.update({
+    where: { id: launchId },
+    data: {
+      processedAt: new Date(),
+      processStatus,
+      processError: processError ? processError.slice(0, 500) : null,
+    },
+  });
 }

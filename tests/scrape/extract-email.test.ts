@@ -98,4 +98,21 @@ describe("extractEmail", () => {
     const r = await extractEmail("https://acme.io");
     expect(r?.email).toBe("support@acme.io");
   });
+
+  it("prefers useful contact emails over legal/privacy inboxes", async () => {
+    vi.mocked(fetchHtml).mockResolvedValueOnce(
+      "<html><body>privacy@acme.io legal@acme.io hello@acme.io</body></html>",
+    );
+    const r = await extractEmail("https://acme.io");
+    expect(r?.email).toBe("hello@acme.io");
+  });
+
+  it("decodes Cloudflare protected emails", async () => {
+    // Cloudflare xor encoding for hello@acme.io with key 12.
+    vi.mocked(fetchHtml).mockResolvedValueOnce(
+      '<html><body><a class="__cf_email__" data-cfemail="0c64696060634c6d6f6169226563"></a></body></html>',
+    );
+    const r = await extractEmail("https://acme.io");
+    expect(r?.email).toBe("hello@acme.io");
+  });
 });
