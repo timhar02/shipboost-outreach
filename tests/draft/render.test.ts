@@ -24,31 +24,4 @@ describe("renderTemplate", () => {
       product_name: "Wavefly", tagline: "t", website_domain: "x.com", sender_first_name: "Tim", shipboost_dr: "44",
     } as never)).toThrow(/first_name/);
   });
-  it("renders discount code and deadline into body and text", () => {
-    const discountTmpl = {
-      key: "d",
-      subject: "{{product_name}}",
-      bodyHtml: "<p>Use code {{discount_code}} at checkout, it closes {{discount_deadline}}.</p>",
-    };
-    const r = renderTemplate(discountTmpl, {
-      product_name: "Wavefly", tagline: "t", website_domain: "x.com",
-      sender_first_name: "Tim", shipboost_dr: "45",
-      discount_code: "LAUNCH9-ABCD1234", discount_deadline: "June 23",
-    });
-    expect(r.bodyHtml).toContain("LAUNCH9-ABCD1234");
-    expect(r.bodyHtml).toContain("June 23");
-    expect(r.bodyText).toContain("LAUNCH9-ABCD1234");
-    expect(r.bodyText).toContain("June 23");
-  });
-  it("throws when a discount template renders without the discount vars", () => {
-    const discountTmpl = {
-      key: "d",
-      subject: "{{product_name}}",
-      bodyHtml: "<p>Use code {{discount_code}} closes {{discount_deadline}}.</p>",
-    };
-    expect(() => renderTemplate(discountTmpl, {
-      product_name: "Wavefly", tagline: "t", website_domain: "x.com",
-      sender_first_name: "Tim", shipboost_dr: "45",
-    })).toThrow(/discount_code/);
-  });
 });

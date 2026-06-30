@@ -1,11 +1,21 @@
 name: Cron - process pending launches
 
-# Drain the deferred-launch queue. Each call processes up to 5 launches.
-# Runs every 10 min during 09:00-16:00 UTC after the daily fetch.
+# Drain the deferred-launch queue. Each scheduled call processes up to 5
+# launches. Manual dispatch can loop over multiple calls to recover after a
+# large fetch creates a backlog.
 on:
   schedule:
-    - cron: "*/10 9-16 * * *"
+    - cron: "*/5 0-16 * * *"
   workflow_dispatch:
+    inputs:
+      drain_runs:
+        description: "Number of process-pending calls to make, 1-20"
+        required: false
+        default: "1"
+      drain_sleep_seconds:
+        description: "Seconds to wait between manual drain calls"
+        required: false
+        default: "5"
 
 concurrency:
   group: cron-process-pending
@@ -20,14 +30,31 @@ jobs:
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          DRAIN_RUNS: ${{ github.event.inputs.drain_runs || '1' }}
+          DRAIN_SLEEP_SECONDS: ${{ github.event.inputs.drain_sleep_seconds || '5' }}
         run: |
           set -e
-          URL="${APP_URL%/}/api/cron/process-pending"
-          echo "Calling: $URL"
-          STATUS=$(curl -sSL -o /tmp/out.json -w "%{http_code}" \
-            -H "x-cron-secret: $CRON_SECRET" \
-            --max-time 90 \
-            "$URL")
-          echo "HTTP $STATUS"
-          cat /tmp/out.json
-          [ "$STATUS" = "200" ]
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL and CRON_SECRET secrets must be set"; exit 1
+          fi
+
+          RUNS="$DRAIN_RUNS"
+          SLEEP_SECONDS="$DRAIN_SLEEP_SECONDS"
+          case "$RUNS" in ''|*[!0-9]*) RUNS=1 ;; esac
+          case "$SLEEP_SECONDS" in ''|*[!0-9]*) SLEEP_SECONDS=5 ;; esac
+          if [ "$RUNS" -lt 1 ]; then RUNS=1; fi
+          if [ "$RUNS" -gt 20 ]; then RUNS=20; fi
+          if [ "$SLEEP_SECONDS" -gt 60 ]; then SLEEP_SECONDS=60; fi
+
+          URL="${APP_URL%/}/api/cron/process-pending?batch=5"
+          for i in $(seq 1 "$RUNS"); do
+            echo "Calling ($i/$RUNS): $URL"
+            STATUS=$(curl -sSL -o /tmp/out.json -w "%{http_code}" \
+              -H "x-cron-secret: $CRON_SECRET" \
+              --max-time 90 \
+              "$URL")
+            echo "HTTP $STATUS"
+            cat /tmp/out.json
+            [ "$STATUS" = "200" ]
+            if [ "$i" -lt "$RUNS" ]; then sleep "$SLEEP_SECONDS"; fi
+          done

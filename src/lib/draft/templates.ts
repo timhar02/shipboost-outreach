@@ -1,14 +1,15 @@
 import type { Template } from "./select";
 
-// Premium Launch is $19 publicly. Cold outreach gets a single shared $9 code
-// ({{discount_code}}) plus a per-recipient marketing deadline ({{discount_deadline}},
-// today + N days). The code does not actually expire; it is entered manually on
-// Dodo's hosted checkout. Follow-ups never mention the code.
+// Premium Launch is $9 (founding price). Cold outreach uses the same flat $9 as
+// the app; scarcity comes from the founding spots count below. Update SLOTS_LEFT
+// as founding spots fill.
+const SLOTS_LEFT = 21;
+const SLOTS_TOTAL = 50;
 const CTA_URL = "https://shipboost.io/submit";
 const SIG = `<p>{{sender_first_name}}<br/><a href="https://shipboost.io">shipboost.io</a></p>`;
 
 // Action block reused across templates: price lands here, never in the subject.
-const OFFER = `<p>Premium Launch is $9 right now, normally $19. Use code {{discount_code}} at checkout, it closes {{discount_deadline}}.</p>`;
+const OFFER = `<p>Premium Launch is $9 right now (founding price, ${SLOTS_LEFT} of ${SLOTS_TOTAL} spots left). Reserved launch week, permanent listing, plus an editorial spotlight on /blog with a DR {{shipboost_dr}} dofollow link to {{website_domain}}.</p>`;
 
 export const templates: Template[] = [
   {

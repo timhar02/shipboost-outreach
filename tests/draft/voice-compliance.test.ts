@@ -42,12 +42,11 @@ describe("voice-profile compliance", () => {
       expect(blob, `${t.key} mentions sold out`).not.toMatch(/sold out/i);
     }
   });
-  it("first-touch templates pitch the $9 code with a deadline", () => {
+  it("first-touch templates pitch the $9 founding price with spots-left scarcity", () => {
     for (const t of templates) {
       const blob = t.bodyHtml;
       expect(blob, `${t.key} missing $9`).toMatch(/\$9\b/);
-      expect(blob, `${t.key} missing {{discount_code}}`).toContain("{{discount_code}}");
-      expect(blob, `${t.key} missing {{discount_deadline}}`).toContain("{{discount_deadline}}");
+      expect(blob, `${t.key} missing spots left`).toContain("spots left");
     }
   });
 });

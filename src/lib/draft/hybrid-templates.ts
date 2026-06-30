@@ -12,10 +12,10 @@ import type { Template } from "./select";
  *   {{website_domain}}        - founder's domain
  *   {{sender_first_name}}     - sender first name (env)
  *   {{shipboost_dr}}          - DR number (env, default 45)
- *   {{discount_code}}         - the $9 Premium Launch code (per-day, from my-app)
- *   {{discount_deadline}}     - "Month D" the code closes
  */
 
+const SLOTS_LEFT = 21;
+const SLOTS_TOTAL = 50;
 const CTA_URL = "https://shipboost.io/submit";
 const SIG = `<p>{{sender_first_name}}<br/><a href="https://shipboost.io">shipboost.io</a></p>`;
 
@@ -26,7 +26,7 @@ export const hybridTemplates: Template[] = [
     bodyHtml: `<p>{{personalized_opener}}</p>
 <p>Most launches do one job well, a spike on day one. The harder job is staying discoverable when launch week ends, and that is the job most platforms drop.</p>
 <p>ShipBoost handles the second job. A permanent listing that keeps surfacing through categories, tags, and alternatives pages, plus a hand-written editorial spotlight on /blog that keeps ranking, with a DR {{shipboost_dr}} dofollow link to {{website_domain}}.</p>
-<p>Premium Launch is $9 right now, normally $19. Use code {{discount_code}} at checkout, it closes {{discount_deadline}}.</p>
+<p>Premium Launch is $9 right now (founding price, ${SLOTS_LEFT} of ${SLOTS_TOTAL} spots left). Reserved launch week, permanent listing, editorial spotlight on /blog with a DR {{shipboost_dr}} dofollow link.</p>
 <p>Worth a look for {{product_name}}? <a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },

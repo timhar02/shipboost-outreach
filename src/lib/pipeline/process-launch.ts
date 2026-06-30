@@ -6,8 +6,6 @@ import { templates } from "@/lib/draft/templates";
 import { hybridTemplates } from "@/lib/draft/hybrid-templates";
 import { selectTemplate } from "@/lib/draft/select";
 import { renderTemplate, type RenderVars } from "@/lib/draft/render";
-import { formatDeadline } from "@/lib/draft/format-deadline";
-import { getOutreachDiscount } from "@/lib/draft/discount";
 import { personalize } from "@/lib/draft/personalize";
 import type { RawLaunch } from "@/lib/sources/types";
 import type { LaunchProcessStatus, SourceKind } from "@prisma/client";
@@ -104,11 +102,6 @@ export async function processLaunch(
     return { kind: "SKIPPED_ERROR", error: err instanceof Error ? err.message : String(err) };
   }
 
-  // The static $9 code + a per-recipient marketing deadline (today + N days),
-  // rendered into the first email only. Follow-ups never mention the code.
-  const discount = getOutreachDiscount();
-  const discountDeadlineFmt = formatDeadline(discount.deadline);
-
   // Try LLM personalization first (if enabled). Fall back to static templates on failure.
   let subjectOverride: string | undefined;
   let openerOverride: string | undefined;
@@ -142,11 +135,9 @@ export async function processLaunch(
         website_domain: domain,
         sender_first_name: senderFirstName,
         shipboost_dr: shipboostDr,
-        discount_code: discount.code,
-        discount_deadline: discountDeadlineFmt,
         personalized_subject: subjectOverride,
         personalized_opener: openerOverride,
-      } as RenderVars);
+      });
 
       const draft = await prisma.outreachDraft.create({
         data: {
@@ -178,8 +169,6 @@ export async function processLaunch(
     website_domain: domain,
     sender_first_name: senderFirstName,
     shipboost_dr: shipboostDr,
-    discount_code: discount.code,
-    discount_deadline: discountDeadlineFmt,
   });
 
   const draft = await prisma.outreachDraft.create({
