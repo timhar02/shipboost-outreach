@@ -2,6 +2,9 @@ import { templates } from "./templates";
 import { hybridTemplates } from "./hybrid-templates";
 import { followUpTemplates } from "./follow-up-templates";
 import { renderTemplate, type RenderVars, type Rendered } from "./render";
+import { selectTemplate } from "./select";
+
+const LEGACY_FIRST_TOUCH = /^out-(?:v[23]-)?(?:02-direct-question|04-mechanic-first|11-ai-visibility|12-positioning)-noname$/;
 
 export type RefreshableDraft = {
   templateKey: string;
@@ -22,8 +25,11 @@ export function refreshDraft(
 ): Rendered & { templateKey: string } {
   const firstTouch = !draft.parentDraftId;
   const pool = firstTouch ? templates : followUpTemplates;
-  const nextKey = draft.templateKey.replace(/^(out|fu)-(?:v\d+-)?/, (_, prefix: string) => `${prefix}-${firstTouch ? "v3" : "v2"}-`);
+  const nextKey = draft.templateKey.replace(/^fu-(?:v\d+-)?/, "fu-v2-");
   let template = pool.find((item) => item.key === draft.templateKey || item.key === nextKey);
+  if (firstTouch && LEGACY_FIRST_TOUCH.test(draft.templateKey)) {
+    template = selectTemplate(draft.contact.domain, templates);
+  }
   const vars: RenderVars = {
     first_name: draft.contact.name ?? undefined,
     product_name: draft.contact.launch.name,
@@ -35,7 +41,7 @@ export function refreshDraft(
 
   if (firstTouch && draft.templateKey.startsWith("hyb-")) {
     template = hybridTemplates[0];
-    const opener = draft.body.match(/<p\b[^>]*\bdata-personalized-opener\b[^>]*>([\s\S]*?)<\/p>/i)?.[1]
+    const opener = draft.body.match(/<(p|span)\b[^>]*\bdata-personalized-opener\b[^>]*>([\s\S]*?)<\/\1>/i)?.[2]
       ?? draft.body.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1];
     if (!opener) throw new Error(`Cannot preserve personalized opener: ${draft.templateKey}`);
     vars.personalized_subject = draft.subject;

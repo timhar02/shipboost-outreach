@@ -39,3 +39,15 @@ friendly greetings. Version first-touch keys to v3, preserve product observation
 in hybrid drafts without duplicating greetings or introductions, and refresh
 pending drafts using the same backup and send-lane hold procedure. Follow-ups
 use `Hi,` without repeating the introduction; they remain disabled.
+
+Further user correction: preserve SEO beyond launch week and AI recommendations
+as the two selling points. Describe these as the purpose of the permanent public
+article, rather than guaranteed rankings or recommendations. Merge the founder
+introduction and invitation into one paragraph, matching the user's edited email.
+Use a v4 experiment with four subjects (article, SEO, ChatGPT, invitation) and
+one identical body. Assign deterministically by domain for both new and migrated
+pending drafts. Preserve hybrid observations and measure that cohort separately.
+The Attribution dashboard compares current subject variants by queued recipients,
+sending attempts, unique tracked openers, replies including automatic responses,
+and attributed paid orders. Do not declare a winner without results; exclude
+detected delivery notices from replies and disabled sources from queued counts.

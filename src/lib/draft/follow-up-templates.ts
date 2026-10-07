@@ -9,7 +9,7 @@ export const followUpTemplates: Template[] = [
     key: "fu-v2-02-direct-noname",
     subject: "Re: {{product_name}}",
     bodyHtml: `<p>Hi,</p>
-<p>Following up on the article for {{product_name}}. We'd write and publish it on the ShipBoost blog, giving you a permanent page to share with prospective users.</p>
+<p>Following up on the article for {{product_name}}. We'd write and publish it on the ShipBoost blog, giving you a permanent page that supports search visibility beyond launch week.</p>
 <p>If this would be useful, here are the details: <a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },
@@ -35,7 +35,7 @@ ${SIG}`,
     subject: "Re: {{product_name}}",
     bodyHtml: `<p>Hi,</p>
 <p>One quick follow-up.</p>
-<p>The editorial article gives {{product_name}} a public reference beyond its own website, explaining the product and who it's for. Readers can share or cite that page.</p>
+<p>The editorial article gives {{product_name}} a public reference beyond its own website, explaining the product and who it's for. The goal is to give ChatGPT a source to draw on when recommending tools in your category.</p>
 <p>Details: <a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },

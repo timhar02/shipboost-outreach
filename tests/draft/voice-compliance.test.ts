@@ -45,7 +45,7 @@ describe("voice-profile compliance", () => {
       expect(blob, `${t.key} mentions sold out`).not.toMatch(/sold out/i);
     }
   });
-  it("first-touch templates pitch $19 without ranking or AI recommendation promises", () => {
+  it("first-touch templates pitch $19 with grounded search and AI visibility benefits", () => {
     for (const t of [...templates, ...hybridTemplates]) {
       const blob = t.bodyHtml;
       expect(blob, `${t.key} missing $19`).toMatch(/\$19\b/);

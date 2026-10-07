@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import type { ConversionStats } from "@/lib/analytics/conversion-stats";
+import type { SubjectRow } from "@/lib/analytics/subject-stats";
 
 export type PossibleMatch = {
   id: string;
@@ -62,11 +63,13 @@ function StatCard({
 
 export function ConversionsClient({
   stats,
+  subjectStats,
   possibleMatches,
   totalConversions,
   lastRunAt,
 }: {
   stats: ConversionStats;
+  subjectStats: SubjectRow[];
   possibleMatches: PossibleMatch[];
   totalConversions: number;
   lastRunAt: string | null;
@@ -172,6 +175,45 @@ export function ConversionsClient({
           tone="amber"
           sub={<div>Send to purchase</div>}
         />
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-zinc-400">
+          Subject line test
+        </h2>
+        <p className="mb-3 text-xs text-zinc-500">
+          Four subject lines, the same email body. Compare reply quality and paid orders before choosing a winner.
+        </p>
+        <div className="overflow-x-auto rounded-lg border border-zinc-800 bg-[#0c0f0d]/95">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-[#101410] text-[10px] uppercase tracking-widest text-zinc-500">
+              <tr>
+                <th className="px-3 py-2">Subject</th>
+                <th className="px-3 py-2 text-right">Queued</th>
+                <th className="px-3 py-2 text-right">Sent</th>
+                <th className="px-3 py-2 text-right">Tracked opens</th>
+                <th className="px-3 py-2 text-right">Replies (all)</th>
+                <th className="px-3 py-2 text-right">Attributed paid orders</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-900">
+              {subjectStats.map((row) => (
+                <tr key={row.templateKey} className="hover:bg-lime-300/5">
+                  <td className="px-3 py-2 text-xs">{row.subject.replace("{{product_name}}", "[product]")}</td>
+                  <td className="px-3 py-2 text-right text-zinc-400">{row.queued}</td>
+                  <td className="px-3 py-2 text-right text-zinc-400">{row.sent}</td>
+                  <td className="px-3 py-2 text-right">{row.sent ? `${row.opened} (${(row.opened / row.sent * 100).toFixed(1)}%)` : "-"}</td>
+                  <td className="px-3 py-2 text-right">{row.sent ? `${row.replied} (${(row.replied / row.sent * 100).toFixed(1)}%)` : "-"}</td>
+                  <td className="px-3 py-2 text-right font-bold text-emerald-300">{row.paidOrders}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-2 text-[11px] text-zinc-600">
+          Opens count each recipient once and may include automated loads. Replies include automatic responses but exclude detected delivery failures.
+          Rates use all sending attempts, including bounces. Queued counts include enabled sources only.
+        </p>
       </section>
 
       <section>

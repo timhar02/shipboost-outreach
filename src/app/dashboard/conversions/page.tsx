@@ -5,13 +5,15 @@ import {
   type StatConversion,
 } from "@/lib/analytics/conversion-stats";
 import { ConversionsClient, type PossibleMatch } from "./ConversionsClient";
+import { templates } from "@/lib/draft/templates";
+import { computeSubjectStats } from "@/lib/analytics/subject-stats";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 export const revalidate = 0;
 
 export default async function ConversionsPage() {
-  const [conversions, sentGroups, syncState] = await Promise.all([
+  const [conversions, sentGroups, syncState, subjectDrafts] = await Promise.all([
     prisma.conversion.findMany({ orderBy: { paidAt: "desc" } }),
     prisma.outreachDraft.groupBy({
       by: ["templateKey"],
@@ -20,6 +22,21 @@ export default async function ConversionsPage() {
       _count: { _all: true },
     }),
     prisma.conversionSyncState.findUnique({ where: { id: "default" } }),
+    prisma.outreachDraft.findMany({
+      where: {
+        templateKey: { in: templates.map((template) => template.key) },
+        parentDraftId: null,
+        OR: [
+          { sentAt: { not: null } },
+          { status: "PENDING_REVIEW", contact: { suppressedAt: null, launch: { source: { enabled: true } } } },
+        ],
+      },
+      select: {
+        templateKey: true, sentAt: true, status: true,
+        events: { select: { kind: true } },
+        messages: { where: { direction: "IN" }, select: { subject: true, snippet: true, headers: true } },
+      },
+    }),
   ]);
 
   const sentCountsByTemplate = new Map<string, number>(
@@ -53,6 +70,13 @@ export default async function ConversionsPage() {
   }));
 
   const stats = computeConversionStats(statRows, sentCountsByTemplate);
+  const subjectStats = computeSubjectStats(templates, subjectDrafts.map((draft) => ({
+    ...draft,
+    messages: draft.messages.map((message) => {
+      const headers = message.headers as Record<string, unknown> | null;
+      return { subject: message.subject, snippet: message.snippet, from: typeof headers?.from === "string" ? headers.from : "" };
+    }),
+  })), stats.byTemplate);
 
   // Review queue: name-similarity matches awaiting a human decision.
   const possibleIds = conversions
@@ -90,6 +114,7 @@ export default async function ConversionsPage() {
   return (
     <ConversionsClient
       stats={stats}
+      subjectStats={subjectStats}
       possibleMatches={possibleMatches}
       totalConversions={conversions.length}
       lastRunAt={syncState?.lastRunAt?.toISOString() ?? null}
