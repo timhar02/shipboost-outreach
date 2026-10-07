@@ -12,7 +12,7 @@ const TO = "tsth02035@gmail.com";
 const RUN = !!process.env.SEND_TEST_OUTREACH;
 
 describe.skipIf(!RUN)("send test outreach emails", () => {
-  it("renders every template with the $9 founding price and sends to the test inbox", async () => {
+  it("renders the current launch templates and sends to the test inbox", async () => {
     const acct = await getConnectedGmailAccount();
     if (!acct) {
       throw new Error(

@@ -303,6 +303,7 @@ function laneDraftWhere(key: LaneKey, blocked: BlockedRecipients) {
     return {
       status: "PENDING_REVIEW" as const,
       parentDraftId: null,
+      contact: { suppressedAt: null, launch: { source: { enabled: true } } },
       ...blockedContactFilter,
     };
   }
@@ -310,6 +311,7 @@ function laneDraftWhere(key: LaneKey, blocked: BlockedRecipients) {
   return {
     status: "PENDING_REVIEW" as const,
     parentDraftId: blocked.draftIds.length ? { not: null, notIn: blocked.draftIds } : { not: null },
+    contact: { suppressedAt: null, launch: { source: { enabled: true } } },
     ...blockedContactFilter,
     parentDraft: { events: { none: { kind: "REPLY" as const } } },
   };

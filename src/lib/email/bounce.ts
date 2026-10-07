@@ -16,6 +16,13 @@ export function classifyInboundEmail(email: InboundEmailSummary): InboundEmailCl
   const snippet = email.snippet ?? "";
   const haystack = `${from}\n${subject}\n${snippet}`;
 
+  // Some remote postmasters reply in the original thread without a DSN subject.
+  // Match the structured notice, rather than words quoted in a human reply.
+  if (/^\s*we could not deliver (?:the attached )?mail for the following recipients[.:]?/i.test(snippet)
+    && /5\.1\.1|user (?:isn't|is not|is&#39;nt) located here|recipient (?:unknown|not found)/i.test(snippet)) {
+    return { kind: "BOUNCE", severity: "permanent", reason: "address_not_found" };
+  }
+
   if (!MAILER_DAEMON_RE.test(haystack) && !/delivery status notification/i.test(subject)) {
     return { kind: "REPLY" };
   }

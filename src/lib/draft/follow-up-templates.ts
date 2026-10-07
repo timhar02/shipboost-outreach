@@ -1,43 +1,40 @@
 import type { Template } from "./select";
+import { CTA_URL } from "./offer";
 
-// Follow-ups deliberately do NOT mention the $9 code or price. The first email's
-// marketing deadline has usually passed by the time a follow-up sends, so these
-// stay value + CTA only and never re-advertise the offer.
-const CTA_URL = "https://shipboost.io/submit";
+// Follow-ups stay price-free and focus on the permanent editorial deliverable.
 const SIG = `<p>{{sender_first_name}}</p>`;
 
 export const followUpTemplates: Template[] = [
   {
-    key: "fu-02-direct-noname",
+    key: "fu-v2-02-direct-noname",
     subject: "Re: {{product_name}}",
     bodyHtml: `<p>Hey,</p>
-<p>Most launches go quiet by week two. The piece we'd write for {{product_name}} is an editorial spotlight that keeps ranking, so buyers still find {{website_domain}} months later through search.</p>
-<p>Worth a look, or are you set? Page is here: <a href="${CTA_URL}">${CTA_URL}</a></p>
+<p>Following up on the article for {{product_name}}. We'd write and publish it on the ShipBoost blog, giving you a permanent page to share with prospective users.</p>
+<p>Worth a look, or are you set? Details: <a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },
   {
-    key: "fu-03-soft-close-noname",
+    key: "fu-v2-03-soft-close-noname",
     subject: "Re: {{product_name}}",
-    bodyHtml: `<p>Last note on this, so a no here is a clean no.</p>
-<p>The one thing worth knowing before I drop it: the spotlight piece for {{product_name}} is a hand-written editorial on /blog that keeps surfacing through categories and alternatives pages after launch week, with a DR {{shipboost_dr}} dofollow link.</p>
-<p>Page is here if it earns a look: <a href="${CTA_URL}">${CTA_URL}</a></p>
+    bodyHtml: `<p>Last note from me on this.</p>
+<p>The article for {{product_name}} would explain what it does and who it's for on the ShipBoost blog. It stays published after launch week, with a link to {{website_domain}}.</p>
+<p>Here if it earns a look: <a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },
   {
-    key: "fu-04-mechanic-noname",
+    key: "fu-v2-04-mechanic-noname",
     subject: "Re: {{product_name}}",
     bodyHtml: `<p>Hey,</p>
-<p>The buyer who matters for {{product_name}} shows up in month two, searching. They find you or they find whoever ranks for the same problem.</p>
-<p>What ranks here is the editorial piece on /blog plus a DR {{shipboost_dr}} dofollow link, both permanent.</p>
-<p><a href="${CTA_URL}">${CTA_URL}</a></p>
+<p>One detail about the article for {{product_name}}: we write it by hand and publish it on the ShipBoost blog. You get a page you can share, plus a dofollow link to {{website_domain}}.</p>
+<p>Details: <a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },
   {
-    key: "fu-05-ai-nudge-noname",
+    key: "fu-v2-05-ai-nudge-noname",
     subject: "Re: {{product_name}}",
-    bodyHtml: `<p>One quick thing, then I'll leave it.</p>
-<p>Go ask ChatGPT for the best tool in your category. If {{product_name}} isn't in the answer, that's the gap. A hand written editorial on /blog gives the models an independent source describing what you do, so {{website_domain}} starts showing up in those answers.</p>
-<p><a href="${CTA_URL}">${CTA_URL}</a></p>
+    bodyHtml: `<p>One quick follow-up.</p>
+<p>The editorial article gives {{product_name}} a public reference beyond its own website, explaining the product and who it's for. Readers can share or cite that page.</p>
+<p>Details: <a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },
 ];

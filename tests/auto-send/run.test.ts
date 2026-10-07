@@ -70,6 +70,12 @@ describe("runAutoSend", () => {
     });
     expect(sendDraft).toHaveBeenCalledWith("first_1", { skipDailyCap: true });
     expect(sendDraft).toHaveBeenCalledWith("follow_1", { skipDailyCap: true });
+    for (const [query] of draftFindFirst.mock.calls) {
+      expect(query.where.contact).toEqual({
+        suppressedAt: null,
+        launch: { source: { enabled: true } },
+      });
+    }
     expect(stateUpdate).toHaveBeenCalledWith({
       where: { id: "first-email" },
       data: {

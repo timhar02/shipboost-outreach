@@ -12,13 +12,12 @@ describe("outreach templates pricing", () => {
     }
   });
 
-  it("offer $9 founding with spots-left scarcity", () => {
-    const offers = all.filter((t) => t.bodyHtml.includes("Premium Launch is $9"));
-    expect(offers.length).toBeGreaterThan(0);
-    for (const t of offers) {
-      expect(t.bodyHtml).toContain("$9");
-      expect(t.bodyHtml).toContain("spots left");
-      expect(t.bodyHtml).not.toContain("normally $19");
+  it("offers the current $19 one-time launch without expired scarcity", () => {
+    for (const t of all) {
+      expect(t.bodyHtml).toContain("Premium Launch is $19 per launch, paid once");
+      expect(t.bodyHtml).toContain("editorial article");
+      expect(t.bodyHtml).toContain("featured placement");
+      expect(t.bodyHtml).not.toMatch(/\$9\b|founding price|spots left/i);
     }
   });
 });

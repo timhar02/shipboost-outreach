@@ -63,6 +63,10 @@ async function fetchAndStoreSource(
     update: {},
   });
 
+  if (source.enabled === false) {
+    return { source: sourceAdapter.kind, launchesSeen: 0, launchesStored: 0, timingMs: Date.now() - started };
+  }
+
   let launches: Awaited<ReturnType<typeof sourceAdapter.fetchSince>>;
   try {
     launches = await withTimeout(sourceAdapter.fetchSince(since), SOURCE_TIMEOUT_MS);

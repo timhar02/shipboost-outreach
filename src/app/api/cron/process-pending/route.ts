@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
     // Find oldest pending Launch rows that have never been processed.
     // (Don't re-try rows where the email scrape already failed — they'd loop forever.)
     const pending = await prisma.launch.findMany({
-      where: { processedAt: null },
+      where: { processedAt: null, source: { enabled: true } },
       include: { source: true },
       orderBy: { fetchedAt: "asc" },
       take: batch,
@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const remaining = await prisma.launch.count({ where: { processedAt: null } });
+    const remaining = await prisma.launch.count({ where: { processedAt: null, source: { enabled: true } } });
     return NextResponse.json({ ok: true, ...result, remaining });
   } catch (err) {
     return NextResponse.json(

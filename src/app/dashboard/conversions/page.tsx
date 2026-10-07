@@ -15,7 +15,8 @@ export default async function ConversionsPage() {
     prisma.conversion.findMany({ orderBy: { paidAt: "desc" } }),
     prisma.outreachDraft.groupBy({
       by: ["templateKey"],
-      where: { status: "SENT" },
+      // A later bounce does not erase the original sending attempt.
+      where: { sentAt: { not: null } },
       _count: { _all: true },
     }),
     prisma.conversionSyncState.findUnique({ where: { id: "default" } }),

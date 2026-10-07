@@ -101,6 +101,14 @@ beforeEach(() => {
 import { runFetchAndQueue } from "@/lib/pipeline/fetch-and-queue";
 
 describe("runFetchAndQueue", () => {
+  it("does not fetch or queue launches from a disabled source", async () => {
+    db.sources.set("PEERPUSH", { id: "s_PEERPUSH", enabled: false });
+    const result = await runFetchAndQueue();
+    expect(result.launchesSeen).toBe(0);
+    expect(result.launchesStored).toBe(0);
+    expect(db.launches.size).toBe(0);
+  });
+
   it("persists Launch rows once (idempotent on second run)", async () => {
     const r1 = await runFetchAndQueue();
     expect(r1.launchesStored).toBe(1);

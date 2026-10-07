@@ -155,7 +155,7 @@ export function ConversionsClient({
         ))}
 
         <StatCard
-          label="Attributed revenue"
+          label="Estimated attributed revenue"
           value={money(stats.revenue.totalCents)}
           tone="emerald"
           sub={(
@@ -186,13 +186,14 @@ export function ConversionsClient({
                 <th className="px-3 py-2 text-right">Sent</th>
                 <th className="px-3 py-2 text-right">Converted</th>
                 <th className="px-3 py-2 text-right">Conv. rate</th>
-                <th className="px-3 py-2 text-right">Revenue</th>
+                <th className="px-3 py-2 text-right">Est. revenue</th>
+                <th className="px-3 py-2 text-right">Est. revenue / 1k sent</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-900">
               {stats.byTemplate.length === 0 ? (
                 <tr>
-                  <td className="px-3 py-4 text-zinc-600" colSpan={5}>
+                  <td className="px-3 py-4 text-zinc-600" colSpan={6}>
                     No sent emails yet.
                   </td>
                 </tr>
@@ -210,6 +211,9 @@ export function ConversionsClient({
                     <td className="px-3 py-2 text-right text-zinc-300">
                       {row.revenueCents > 0 ? money(row.revenueCents) : "—"}
                     </td>
+                    <td className="px-3 py-2 text-right text-zinc-300">
+                      {row.sent > 0 ? money(row.revenueCents * 1000 / row.sent) : "—"}
+                    </td>
                   </tr>
                 ))
               )}
@@ -218,7 +222,7 @@ export function ConversionsClient({
         </div>
         <p className="mt-2 text-[11px] text-zinc-600">
           Attribution is correlation (we emailed them and they bought), matched by domain to email.
-          Not click-proof.
+          Not click-proof. Revenue is estimated; verify against payments before calculating ROI.
         </p>
       </section>
 

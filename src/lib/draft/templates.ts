@@ -1,56 +1,46 @@
 import type { Template } from "./select";
+import { CTA_URL, OFFER, SIG } from "./offer";
 
-// Premium Launch is $9 (founding price). Cold outreach uses the same flat $9 as
-// the app; scarcity comes from the founding spots count below. Update SLOTS_LEFT
-// as founding spots fill.
-const SLOTS_LEFT = 21;
-const SLOTS_TOTAL = 50;
-const CTA_URL = "https://shipboost.io/submit";
-const SIG = `<p>{{sender_first_name}}<br/><a href="https://shipboost.io">shipboost.io</a></p>`;
-
-// Action block reused across templates: price lands here, never in the subject.
-const OFFER = `<p>Premium Launch is $9 right now (founding price, ${SLOTS_LEFT} of ${SLOTS_TOTAL} spots left). Reserved launch week, permanent listing, plus an editorial spotlight on /blog with a DR {{shipboost_dr}} dofollow link to {{website_domain}}.</p>`;
-
+// New keys keep the $19 campaign separate from historical founding emails.
 export const templates: Template[] = [
   {
-    key: "out-02-direct-question-noname",
-    subject: "week two plan",
-    bodyHtml: `<p>{{product_name}} just shipped. What's the plan for week two?</p>
-<p>Launch traffic is a one time event. The buyer searching for what you do next month never sees the launch. They see whatever shows up in categories and alternatives lists.</p>
-<p>That's the gap ShipBoost is built for. A permanent listing that keeps working past launch week, plus a hand written editorial piece on our blog with a DR {{shipboost_dr}} dofollow link to {{website_domain}}.</p>
-${OFFER}
-<p>If {{website_domain}} should still be findable in a month: <a href="${CTA_URL}">${CTA_URL}</a></p>
-${SIG}`,
-  },
-  {
-    key: "out-04-mechanic-first-noname",
-    subject: "about {{product_name}}",
+    key: "out-v2-02-direct-question-noname",
+    subject: "week two plan for {{product_name}}",
     bodyHtml: `<p>Hey,</p>
-<p>A launch should turn into a public asset. Something buyers can find, compare, and come back to after the launch window closes. Most directories don't do that work. ShipBoost does.</p>
-<p>{{product_name}} just launched. {{tagline}}. The listing should keep earning trust through categories, tags, and alternatives when the right buyer is searching later.</p>
-<p>Premium Launch covers it. A reserved launch week, permanent listing, plus an editorial spotlight on the blog with a DR {{shipboost_dr}} dofollow link to {{website_domain}}.</p>
+<p>What's the plan for {{product_name}} after launch week?</p>
+<p>A launch announcement gets buried. A product article gives you a page you can keep sharing when someone asks what {{product_name}} does and who it's for.</p>
 ${OFFER}
-<p><a href="${CTA_URL}">${CTA_URL}</a></p>
+<p>Pick a launch week here: <a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },
   {
-    key: "out-11-ai-visibility-noname",
-    subject: "does ChatGPT know {{product_name}} exists",
-    bodyHtml: `<p>Quick test. Ask ChatGPT for the best tool in your category. Does {{product_name}} come up?</p>
-<p>If it doesn't, here is the mechanic. Before a model recommends a product, it checks whether independent sites describe it. If {{website_domain}} only lives on its own domain, it reads as unverified, so the model names someone else.</p>
-<p>A ShipBoost listing fixes that, and not with a thin link. A hand written editorial on /blog that says what {{product_name}} does and who it's for, on a DR {{shipboost_dr}} domain. Real content the models can read and cite, with a dofollow link as the bonus.</p>
-${OFFER}
-<p>If the model should know {{product_name}} exists: <a href="${CTA_URL}">${CTA_URL}</a></p>
-${SIG}`,
-  },
-  {
-    key: "out-12-positioning-noname",
-    subject: "{{product_name}} and positioning past launch",
+    key: "out-v2-04-mechanic-first-noname",
+    subject: "an article about {{product_name}}",
     bodyHtml: `<p>Hey,</p>
-<p>{{tagline}} reads like real positioning, not a launch day line. That earns a longer second life if the listing exists to support it.</p>
-<p>ShipBoost is where {{website_domain}} stays discoverable after launch week rotates. Categories, tags, alternatives pages. Plus a hand written editorial spotlight on /blog with a DR {{shipboost_dr}} dofollow backlink.</p>
+<p>Would a hand-written article explaining {{product_name}} be useful for your next launch?</p>
+<p>That's what we publish on the ShipBoost blog. A page about your product and who it's for, which you can share with prospective users after launch week.</p>
 ${OFFER}
-<p><a href="${CTA_URL}">${CTA_URL}</a></p>
+<p>Details and submission: <a href="${CTA_URL}">${CTA_URL}</a></p>
+${SIG}`,
+  },
+  {
+    key: "out-v2-11-ai-visibility-noname",
+    subject: "a public reference for {{product_name}}",
+    bodyHtml: `<p>Hey,</p>
+<p>When someone researches {{product_name}}, what can they read beyond {{website_domain}}?</p>
+<p>We write an editorial article describing your product and who it's for on the ShipBoost blog. It gives readers a public reference they can share or cite.</p>
+${OFFER}
+<p>Worth a look? <a href="${CTA_URL}">${CTA_URL}</a></p>
+${SIG}`,
+  },
+  {
+    key: "out-v2-12-positioning-noname",
+    subject: "the story behind {{product_name}}",
+    bodyHtml: `<p>Hey,</p>
+<p>A tagline introduces {{product_name}}. An article gives you room to explain the problem it solves and who should use it.</p>
+<p>We write that article and publish it on the ShipBoost blog, so you have a permanent page to share alongside your own site.</p>
+${OFFER}
+<p>Submit {{product_name}} here: <a href="${CTA_URL}">${CTA_URL}</a></p>
 ${SIG}`,
   },
 ];
