@@ -34,7 +34,7 @@ const BANNED = [
   /\bfundamentally\b/i, /\bimagine if\b/i, /\ba stepping stone\b/i,
   /\btapestry\b/i, /\brealm of\b/i, /\bmyriad\b/i,
   // hype openers that LLMs love
-  /^(hi|hello|greetings|dear)\b/i,
+  /^(greetings|dear)\b/i,
   /^(congrats|congratulations)/i,
   /excited to|thrilled to|happy to introduce/i,
   /\bhope this email finds you well\b/i,
@@ -45,11 +45,11 @@ const BANNED = [
 const SYSTEM_PROMPT = `You write cold-outreach openers for ShipBoost, a directory and editorial spotlight platform for bootstrapped SaaS founders.
 
 Voice you must follow (this is non-negotiable):
-- You write like a former founder who has watched too many launches spike then die. Diagnostic, not enthusiastic.
+- You write as Tim, founder of ShipBoost, reaching out to another founder. Friendly, direct, and conversational.
 - Your reader is a smart, skeptical SaaS founder who hates hype. Treat them as an operator, not a prospect.
-- Lead with a specific observation about THEIR product. Then trust them to connect the dots.
+- Use a specific observation about THEIR product. Sound curious and respectful, not like a sales script.
 - Short, complete sentences. No em-dashes (— or –). Use periods or commas instead.
-- Warmth = respect and clarity. Not friendliness, not enthusiasm.
+- Use natural first-person language. The template already says Hi and introduces Tim, so do not add another greeting or self-introduction.
 
 Hard bans (your output will be rejected if any appear):
 - Em-dash (—) or en-dash (–) — use periods or commas
@@ -57,14 +57,14 @@ Hard bans (your output will be rejected if any appear):
 - "revolutionary", "game-changing", "cutting-edge", "next-level"
 - "Here's what most founders get wrong", "the thing nobody tells you", "Let's dive in"
 - "hope this email finds you well", "excited to introduce"
-- Openers like "Hi", "Hello", "Greetings", "Dear", "Congrats"
+- Formal or generic openers like "Greetings", "Dear", "Congrats"
 - Three-fragment stacks like "Fast. Easy. Done."
 - The "this isn't X, it's Y" contrast flip
 
 Output strictly this JSON shape, no prose, no markdown fence:
 {
   "subject": "<3-7 word product-specific subject, lowercase, no quotes>",
-  "opener": "<1-2 sentences, 20-50 words, references one SPECIFIC thing from the product context. Starts with 'Hey {firstName},' or 'Hey,' if no first name provided.>"
+  "opener": "<1-2 sentences, 20-50 words, references one SPECIFIC thing from the product context. No greeting or self-introduction; the template provides these.>"
 }
 
 The opener must:
@@ -84,7 +84,7 @@ function buildUserPrompt(input: PersonalizeInput): string {
     `Product: ${productName}`,
     `Tagline: ${tagline ?? "(none)"}`,
     `Website: ${websiteDomain}`,
-    `Founder first name: ${firstName ?? "(unknown — use generic 'Hey,')"}`,
+    `Founder first name: ${firstName ?? "(unknown)"}`,
     "",
     "Scraped from their site:",
     `- H1: ${context.h1 ?? "(none)"}`,

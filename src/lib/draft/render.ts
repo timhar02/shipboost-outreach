@@ -16,6 +16,10 @@ export type RenderVars = {
 export type Rendered = { subject: string; bodyHtml: string; bodyText: string };
 
 export function renderTemplate(t: Template, vars: RenderVars): Rendered {
+  // Earlier personalizers included a greeting. The template now supplies it.
+  if (vars.personalized_opener) {
+    vars = { ...vars, personalized_opener: vars.personalized_opener.replace(/^\s*(?:hi|hey|hello)(?:\s+[^,<]+)?\s*,\s*(?:<br\s*\/?\s*>\s*)?/i, "").trim() };
+  }
   const subject = substitute(t.subject, vars);
   const bodyHtml = substitute(t.bodyHtml, vars);
   const bodyText = convert(bodyHtml, {

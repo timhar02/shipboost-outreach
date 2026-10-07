@@ -31,3 +31,11 @@ read-only production status. No payment, authentication, or schema changes.
 Deployment prerequisite: Vercel rejected the old Node 20 engine. Pin Node 22,
 matching the tested local runtime and the platform's supported versions; do not
 upgrade application dependencies as part of this change.
+
+User-requested voice revision on 2026-10-07: first-touch emails start with `Hi,`
+and `I'm Tim, founder of ShipBoost.` Use a friendly founder invitation, keeping
+the $19 offer and benefits. The user's preference supersedes the old rule against
+friendly greetings. Version first-touch keys to v3, preserve product observations
+in hybrid drafts without duplicating greetings or introductions, and refresh
+pending drafts using the same backup and send-lane hold procedure. Follow-ups
+use `Hi,` without repeating the introduction; they remain disabled.

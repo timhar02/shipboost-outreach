@@ -22,7 +22,7 @@ export function refreshDraft(
 ): Rendered & { templateKey: string } {
   const firstTouch = !draft.parentDraftId;
   const pool = firstTouch ? templates : followUpTemplates;
-  const nextKey = draft.templateKey.replace(/^(out|fu)-/, "$1-v2-");
+  const nextKey = draft.templateKey.replace(/^(out|fu)-(?:v\d+-)?/, (_, prefix: string) => `${prefix}-${firstTouch ? "v3" : "v2"}-`);
   let template = pool.find((item) => item.key === draft.templateKey || item.key === nextKey);
   const vars: RenderVars = {
     first_name: draft.contact.name ?? undefined,
@@ -35,7 +35,8 @@ export function refreshDraft(
 
   if (firstTouch && draft.templateKey.startsWith("hyb-")) {
     template = hybridTemplates[0];
-    const opener = draft.body.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1];
+    const opener = draft.body.match(/<p\b[^>]*\bdata-personalized-opener\b[^>]*>([\s\S]*?)<\/p>/i)?.[1]
+      ?? draft.body.match(/<p\b[^>]*>([\s\S]*?)<\/p>/i)?.[1];
     if (!opener) throw new Error(`Cannot preserve personalized opener: ${draft.templateKey}`);
     vars.personalized_subject = draft.subject;
     vars.personalized_opener = opener;

@@ -12,7 +12,7 @@ const draft: RefreshableDraft = {
 describe("refresh pending offer", () => {
   it("keeps the angle but removes the old offer in both email formats", () => {
     const updated = refreshDraft(draft, "Tim", "46");
-    expect(updated.templateKey).toBe("out-v2-11-ai-visibility-noname");
+    expect(updated.templateKey).toBe("out-v3-11-ai-visibility-noname");
     expect(updated.subject).toBe("a public reference for Wavefly");
     for (const body of [updated.bodyHtml, updated.bodyText]) {
       expect(body).toContain("$19");
@@ -25,8 +25,18 @@ describe("refresh pending offer", () => {
   it("preserves a hybrid opener and subject without invoking personalization", () => {
     const updated = refreshDraft({ ...draft, templateKey: "hyb-03-second-job", body: "<p>Hey Sarah, your quiet launch workflow caught my eye.</p><p>Old offer</p>" }, "Tim", "46");
     expect(updated.subject).toBe(draft.subject);
-    expect(updated.bodyHtml).toContain("<p>Hey Sarah, your quiet launch workflow caught my eye.</p>");
+    expect(updated.bodyHtml).toContain('<p data-personalized-opener>your quiet launch workflow caught my eye.</p>');
+    expect(updated.bodyText).toContain("I'm Tim, founder of ShipBoost.");
+    expect(updated.bodyHtml.match(/<p>Hi,<\/p>/g)).toHaveLength(1);
+    expect(refreshDraft({ ...draft, templateKey: updated.templateKey, body: updated.bodyHtml, subject: updated.subject }, "Tim", "46")).toEqual(updated);
     expect(updated.bodyText).toContain("$19");
+  });
+
+  it("migrates the previous $19 cohort to the friendly founder introduction", () => {
+    const updated = refreshDraft({ ...draft, templateKey: "out-v2-11-ai-visibility-noname" }, "Tim", "46");
+    expect(updated.templateKey).toBe("out-v3-11-ai-visibility-noname");
+    expect(updated.bodyText).toMatch(/^Hi,/);
+    expect(updated.bodyText).toContain("I'm Tim, founder of ShipBoost.");
   });
 
   it("keeps follow-ups price-free and preserves their conversation subject", () => {
