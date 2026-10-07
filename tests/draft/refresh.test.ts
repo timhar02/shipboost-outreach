@@ -29,7 +29,7 @@ describe("refresh pending offer", () => {
     expect(updated.subject).toBe(draft.subject);
     expect(updated.bodyHtml).toContain('<span data-personalized-opener>your quiet launch workflow caught my eye.</span>');
     expect(updated.bodyText).toContain("I'm Tim, founder of ShipBoost.");
-    expect(updated.bodyHtml.match(/<p>Hi,<\/p>/g)).toHaveLength(1);
+    expect(updated.bodyHtml.match(/<p>Hi Wavefly team,<\/p>/g)).toHaveLength(1);
     expect(refreshDraft({ ...draft, templateKey: updated.templateKey, body: updated.bodyHtml, subject: updated.subject }, "Tim", "46")).toEqual(updated);
     expect(updated.bodyText).toContain("$19");
   });
@@ -37,7 +37,7 @@ describe("refresh pending offer", () => {
   it("migrates the previous $19 cohort to the friendly founder introduction", () => {
     const updated = refreshDraft({ ...draft, templateKey: "out-v2-11-ai-visibility-noname" }, "Tim", "46");
     expect(updated.templateKey).toBe(selectTemplate(draft.contact.domain, templates).key);
-    expect(updated.bodyText).toMatch(/^Hi,/);
+    expect(updated.bodyText).toMatch(/^Hi Wavefly team,/);
     expect(updated.bodyText).toContain("I'm Tim, founder of ShipBoost.");
   });
 

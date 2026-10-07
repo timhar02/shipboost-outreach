@@ -6,7 +6,7 @@ export const hybridTemplates: Template[] = [
   {
     key: "hyb-v4-03-second-job",
     subject: "{{personalized_subject}}",
-    bodyHtml: `<p>Hi,</p>
+    bodyHtml: `<p>Hi {{product_name}} team,</p>
 <p>${FOUNDER_INTRO} <span data-personalized-opener>{{personalized_opener}}</span></p>
 ${DISCOVERY}
 ${OFFER}

@@ -2,7 +2,7 @@ import type { Template } from "./select";
 import { CTA_URL, DISCOVERY, FOUNDER_INTRO, OFFER, SIG } from "./offer";
 
 // The body is identical across variants so only the subject is being tested.
-const BODY = `<p>Hi,</p>
+const BODY = `<p>Hi {{product_name}} team,</p>
 <p>${FOUNDER_INTRO} I wanted to reach out about {{product_name}}. Would an article explaining what you've built and who it's for be useful?</p>
 ${DISCOVERY}
 ${OFFER}

@@ -51,3 +51,8 @@ The Attribution dashboard compares current subject variants by queued recipients
 sending attempts, unique tracked openers, replies including automatic responses,
 and attributed paid orders. Do not declare a winner without results; exclude
 detected delivery notices from replies and disabled sources from queued counts.
+
+User-requested greeting refinement: use `Hi {{product_name}} team,` across
+first-touch, hybrid, and follow-up templates. Keep the v4 subjects and the rest
+of the shared body unchanged; apply the same greeting to every subject variant.
+Refresh pending drafts and restore the backed-up schedule after verification.
