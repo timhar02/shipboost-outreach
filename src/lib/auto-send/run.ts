@@ -8,6 +8,7 @@ import {
   nextAutoSendDelayMinutes,
 } from "./config";
 import { followUpsEnabled } from "@/lib/pipeline/process-follow-ups";
+import { launchPriorityTiers } from "@/lib/sources/priority";
 
 const CONVERSION_BLOCK_STATUSES = ["MATCHED_DOMAIN", "MATCHED_EMAIL", "POSSIBLE", "CONFIRMED"] as const;
 
@@ -244,11 +245,7 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
 
   while (draftIds.length < maxPerRun && sentCount < config.dailyCap && scheduleCursor <= now && attempts < maxAttempts) {
     attempts++;
-    const draft = await prisma.outreachDraft.findFirst({
-      where: laneWhere,
-      orderBy: { createdAt: "asc" },
-      select: { id: true },
-    });
+    const draft = await nextDraftByPriority(laneWhere);
     if (!draft) break;
 
     try {
@@ -294,6 +291,21 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
     dailyCap: config.dailyCap,
     pendingDrafts,
   };
+}
+
+/** Oldest draft in the lane, priority sources first (see launchPriorityTiers). */
+async function nextDraftByPriority(laneWhere: ReturnType<typeof laneDraftWhere>) {
+  const laneLaunch = laneWhere.contact.launch;
+  for (const { source, ...tier } of launchPriorityTiers()) {
+    const launch = { ...laneLaunch, ...tier, source: { ...laneLaunch.source, ...source } };
+    const draft = await prisma.outreachDraft.findFirst({
+      where: { ...laneWhere, contact: { ...laneWhere.contact, launch } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    if (draft) return draft;
+  }
+  return null;
 }
 
 function laneDraftWhere(key: LaneKey, blocked: BlockedRecipients) {

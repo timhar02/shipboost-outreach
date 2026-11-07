@@ -47,6 +47,32 @@ describe("runAutoSend", () => {
     draftUpdate.mockResolvedValue({});
   });
 
+  it("sends ScrollLaunch and Nick Launches drafts before older drafts from other sources", async () => {
+    draftCount.mockImplementation(async ({ where }) => (where.status === "SENT" ? 0 : 2));
+    draftFindFirst.mockImplementation(async ({ where }) => {
+      if (where.parentDraftId !== null) return null;
+      const kinds = where.contact.launch.source.kind?.in;
+      // Tier 1 (paid priority launches) is empty; tier 2 has a ScrollLaunch draft.
+      if (kinds && where.contact.launch.OR) return null;
+      if (kinds) return { id: "scrolllaunch_draft" };
+      return { id: "older_peerpush_draft" };
+    });
+    const { runAutoSend } = await import("@/lib/auto-send/run");
+
+    await runAutoSend(new Date("2026-06-04T00:00:00.000Z"));
+
+    expect(sendDraft).toHaveBeenCalledWith("scrolllaunch_draft", { skipDailyCap: true });
+    expect(sendDraft).not.toHaveBeenCalledWith("older_peerpush_draft", expect.anything());
+    const firstLaneTiers = draftFindFirst.mock.calls
+      .map(([query]) => query.where)
+      .filter((where) => where.parentDraftId === null)
+      .map((where) => where.contact.launch);
+    expect(firstLaneTiers[0]).toMatchObject({
+      source: { enabled: true, kind: { in: ["SCROLLLAUNCH", "NICK_LAUNCHES"] } },
+      OR: [{ raw: { path: ["premiumListing"], equals: true } }, { raw: { path: ["featured"], equals: true } }],
+    });
+  });
+
   it("sends first emails and follow-ups through independent lanes", async () => {
     draftCount.mockImplementation(async ({ where }) => {
       if (where.status === "SENT") return 0;
@@ -71,10 +97,8 @@ describe("runAutoSend", () => {
     expect(sendDraft).toHaveBeenCalledWith("first_1", { skipDailyCap: true });
     expect(sendDraft).toHaveBeenCalledWith("follow_1", { skipDailyCap: true });
     for (const [query] of draftFindFirst.mock.calls) {
-      expect(query.where.contact).toEqual({
-        suppressedAt: null,
-        launch: { source: { enabled: true } },
-      });
+      expect(query.where.contact.suppressedAt).toBeNull();
+      expect(query.where.contact.launch.source).toMatchObject({ enabled: true });
     }
     expect(stateUpdate).toHaveBeenCalledWith({
       where: { id: "first-email" },

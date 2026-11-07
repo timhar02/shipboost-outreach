@@ -33,8 +33,17 @@ const SOURCES = [
   new NickLaunchesSource(),
 ];
 
-export async function runFetchAndQueue(): Promise<FetchResult> {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+/**
+ * `sinceDays` widens the window for a one-off backfill (weekly-board sources
+ * read every board in it); `kinds` limits the run to some sources.
+ */
+export async function runFetchAndQueue(
+  options: { sinceDays?: number; kinds?: string[] } = {},
+): Promise<FetchResult> {
+  const since = new Date(Date.now() - (options.sinceDays ?? 1) * 24 * 60 * 60 * 1000);
+  const sources = options.kinds?.length
+    ? SOURCES.filter((sourceAdapter) => options.kinds!.includes(sourceAdapter.kind))
+    : SOURCES;
 
   const result: FetchResult = {
     launchesSeen: 0,
@@ -44,7 +53,7 @@ export async function runFetchAndQueue(): Promise<FetchResult> {
     sourceTimingsMs: {},
   };
 
-  const settled = await Promise.all(SOURCES.map((sourceAdapter) => fetchAndStoreSource(sourceAdapter, since)));
+  const settled = await Promise.all(sources.map((sourceAdapter) => fetchAndStoreSource(sourceAdapter, since)));
   for (const item of settled) {
     result.launchesSeen += item.launchesSeen;
     result.launchesStored += item.launchesStored;

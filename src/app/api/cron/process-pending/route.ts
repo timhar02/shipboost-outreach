@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/server/db/client";
 import { processLaunch } from "@/lib/pipeline/process-launch";
+import { launchPriorityTiers } from "@/lib/sources/priority";
 import type { RawLaunch } from "@/lib/sources/types";
 
 export const dynamic = "force-dynamic";
@@ -25,14 +27,24 @@ export async function GET(req: NextRequest) {
 
   try {
     const batch = readBatch(req);
-    // Find oldest pending Launch rows that have never been processed.
+    // Find the oldest pending Launch rows that have never been processed,
+    // priority sources first (see launchPriorityTiers).
     // (Don't re-try rows where the email scrape already failed — they'd loop forever.)
-    const pending = await prisma.launch.findMany({
-      where: { processedAt: null, source: { enabled: true } },
-      include: { source: true },
-      orderBy: { fetchedAt: "asc" },
-      take: batch,
-    });
+    const pending: Prisma.LaunchGetPayload<{ include: { source: true } }>[] = [];
+    for (const tier of launchPriorityTiers()) {
+      if (pending.length >= batch) break;
+      pending.push(
+        ...(await prisma.launch.findMany({
+          where: {
+            AND: [tier, { processedAt: null, source: { enabled: true } }],
+            id: { notIn: pending.map((launch) => launch.id) },
+          },
+          include: { source: true },
+          orderBy: { fetchedAt: "asc" },
+          take: batch - pending.length,
+        })),
+      );
+    }
 
     const result = {
       claimed: pending.length,
