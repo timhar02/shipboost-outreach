@@ -1,8 +1,9 @@
 name: Cron - process pending launches
 
-# Drain the deferred-launch queue. Each scheduled call processes up to 5
-# launches. Manual dispatch can loop over multiple calls to recover after a
-# large fetch creates a backlog.
+# Drain the deferred-launch queue. Each call processes up to 5 launches.
+# GitHub runs "*/5" schedules only a few times a day in practice, so every
+# scheduled run loops (up to 12 calls, ~60 launches) and stops early once the
+# queue is empty. Manual dispatch picks its own number of calls.
 on:
   schedule:
     - cron: "*/5 0-16 * * *"
@@ -24,13 +25,13 @@ concurrency:
 jobs:
   trigger:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - name: Call process-pending endpoint
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-          DRAIN_RUNS: ${{ github.event.inputs.drain_runs || '1' }}
+          DRAIN_RUNS: ${{ github.event.inputs.drain_runs || '12' }}
           DRAIN_SLEEP_SECONDS: ${{ github.event.inputs.drain_sleep_seconds || '5' }}
         run: |
           set -e
@@ -56,5 +57,7 @@ jobs:
             echo "HTTP $STATUS"
             cat /tmp/out.json
             [ "$STATUS" = "200" ]
+            REMAINING=$(jq -r '.remaining // empty' /tmp/out.json 2>/dev/null || true)
+            if [ "$REMAINING" = "0" ]; then echo "Queue empty"; break; fi
             if [ "$i" -lt "$RUNS" ]; then sleep "$SLEEP_SECONDS"; fi
           done

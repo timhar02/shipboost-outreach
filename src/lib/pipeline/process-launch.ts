@@ -8,6 +8,7 @@ import { selectTemplate } from "@/lib/draft/select";
 import { renderTemplate, type RenderVars } from "@/lib/draft/render";
 import { personalize } from "@/lib/draft/personalize";
 import type { RawLaunch } from "@/lib/sources/types";
+import { fetchScrollLaunchMakerFirstName } from "@/lib/sources/scrolllaunch";
 import type { LaunchProcessStatus, SourceKind } from "@prisma/client";
 
 export type ProcessOutcome =
@@ -84,6 +85,13 @@ export async function processLaunch(
   if (dupeByEmail) {
     await markLaunchProcessed(launch.id, "SKIPPED_DEDUP");
     return { kind: "SKIPPED_DEDUP" };
+  }
+
+  // ScrollLaunch lists the founder's name on the product; use it when the
+  // website gave an address but no name, so the email can greet them by name.
+  if (!hit.name && sourceKind === "SCROLLLAUNCH") {
+    const slug = (raw.raw as { slug?: unknown } | null)?.slug;
+    if (typeof slug === "string") hit.name = await fetchScrollLaunchMakerFirstName(slug, raw.name);
   }
 
   let contact;

@@ -103,3 +103,23 @@ describe("NickLaunchesSource", () => {
     expect((out[0].raw as { featured: boolean }).featured).toBe(true);
   });
 });
+
+describe("ScrollLaunch maker name", () => {
+  it("keeps a real first name and drops handles, product names and placeholders", async () => {
+    const { personFirstName } = await import("@/lib/sources/scrolllaunch");
+    expect(personFirstName("Ketan Patil", "Notelify")).toBe("Ketan");
+    expect(personFirstName("José", "Foo")).toBe("José");
+    expect(personFirstName("moon", "Plimo")).toBeUndefined();
+    expect(personFirstName("Notelify", "Notelify")).toBeUndefined();
+    expect(personFirstName("Unknown", "Foo")).toBeUndefined();
+    expect(personFirstName("@ketan", "Foo")).toBeUndefined();
+    expect(personFirstName(null, "Foo")).toBeUndefined();
+  });
+
+  it("reads makerName from the product endpoint", async () => {
+    requestMock.mockResolvedValue(respond({ makerName: "Ketan Patil" }));
+    const { fetchScrollLaunchMakerFirstName } = await import("@/lib/sources/scrolllaunch");
+    await expect(fetchScrollLaunchMakerFirstName("notelify-1", "Notelify")).resolves.toBe("Ketan");
+    expect(requestMock.mock.calls[0][0]).toBe("https://www.scrolllaunch.com/v1/products/notelify-1");
+  });
+});
