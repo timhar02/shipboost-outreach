@@ -45,9 +45,15 @@ export function sourceUrl(
     case "SAASHUB":
       if (r && typeof r.detailUrl === "string") return r.detailUrl;
       return "https://www.saashub.com/submit";
+    case "SCROLLLAUNCH":
+      // The leaderboard API returns the listing URL as `url`.
+      if (r && typeof r.url === "string") return r.url;
+      return null;
+    case "NICK_LAUNCHES":
+      if (r && typeof r.productUrl === "string") return r.productUrl;
+      return null;
     case "FOUNDRLIST":
     case "PEERLIST":
-    case "SCROLLLAUNCH":
       return null;
   }
 }
@@ -69,5 +75,6 @@ export function sourceLabel(kind: SourceKind): string {
     case "PITCHWALL": return "PitchWall";
     case "LAUNCHING_NEXT": return "Launching Next";
     case "SAASHUB": return "SaaSHub";
+    case "NICK_LAUNCHES": return "Nick Launches";
   }
 }

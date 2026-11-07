@@ -4,6 +4,8 @@ import { HackerNewsSource } from "@/lib/sources/hacker-news";
 import { BetaListSource } from "@/lib/sources/betalist";
 import { StartupBaseSource } from "@/lib/sources/startupbase";
 import { LaunchingNextSource } from "@/lib/sources/launching-next";
+import { ScrollLaunchSource } from "@/lib/sources/scrolllaunch";
+import { NickLaunchesSource } from "@/lib/sources/nick-launches";
 
 /**
  * Lightweight daily fetch: pulls launches from each source and persists them
@@ -27,6 +29,8 @@ const SOURCES = [
   new BetaListSource(),
   new StartupBaseSource(),
   new LaunchingNextSource(),
+  new ScrollLaunchSource(),
+  new NickLaunchesSource(),
 ];
 
 export async function runFetchAndQueue(): Promise<FetchResult> {

@@ -20,6 +20,7 @@ enum SourceKind {
   PITCHWALL
   LAUNCHING_NEXT
   SAASHUB
+  NICK_LAUNCHES
 }
 
 enum LaunchProcessStatus {

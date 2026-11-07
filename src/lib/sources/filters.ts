@@ -54,3 +54,29 @@ export function cleanExternalUrl(rawUrl: string, sourceHost: string): string | n
 export function cleanText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
+
+export type IsoWeek = { year: number; week: number; startsOn: Date };
+
+/** ISO-8601 week (Monday start, UTC) that contains the given date. */
+export function isoWeekOf(date: Date): IsoWeek {
+  const day = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const weekday = day.getUTCDay() || 7;
+  const startsOn = new Date(day.getTime() - (weekday - 1) * 864e5);
+  // The Thursday of this week decides which year the week belongs to.
+  const thursday = new Date(startsOn.getTime() + 3 * 864e5);
+  const year = thursday.getUTCFullYear();
+  const week = Math.ceil(((thursday.getTime() - Date.UTC(year, 0, 1)) / 864e5 + 1) / 7);
+  return { year, week, startsOn };
+}
+
+/** Every ISO week touched by [since, now], oldest first. For weekly launch boards. */
+export function isoWeeksSince(since: Date, now: Date = new Date()): IsoWeek[] {
+  const weeks: IsoWeek[] = [];
+  let cursor = isoWeekOf(since);
+  const last = isoWeekOf(now);
+  while (cursor.startsOn.getTime() <= last.startsOn.getTime()) {
+    weeks.push(cursor);
+    cursor = isoWeekOf(new Date(cursor.startsOn.getTime() + 7 * 864e5));
+  }
+  return weeks;
+}
