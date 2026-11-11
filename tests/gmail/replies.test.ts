@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const gmailFetch = vi.fn();
+const listConnectedGmailAccounts = vi.fn();
 const emailFindUnique = vi.fn();
 const emailFindFirst = vi.fn();
 const tx = vi.fn();
@@ -9,7 +10,7 @@ const eventCreate = vi.fn((args) => ({ model: "outreachEvent", args }));
 const draftUpdate = vi.fn((args) => ({ model: "outreachDraft", args }));
 const contactUpdate = vi.fn((args) => ({ model: "contact", args }));
 
-vi.mock("@/lib/gmail/client", () => ({ gmailFetch }));
+vi.mock("@/lib/gmail/client", () => ({ gmailFetch, listConnectedGmailAccounts }));
 vi.mock("@/server/db/client", () => ({
   prisma: {
     emailMessage: { findUnique: emailFindUnique, findFirst: emailFindFirst, create: emailCreate },
@@ -25,6 +26,7 @@ describe("pollReplies", () => {
     vi.resetModules();
     vi.clearAllMocks();
     tx.mockResolvedValue([]);
+    listConnectedGmailAccounts.mockResolvedValue(["tim@gmail.com"]);
     emailFindUnique.mockResolvedValue(null);
     emailFindFirst.mockResolvedValue({
       draftId: "draft_1",
@@ -92,5 +94,18 @@ describe("pollReplies", () => {
     expect(eventCreate).toHaveBeenCalledWith({
       data: { draftId: "draft_1", kind: "REPLY", payload: { gmailMessageId: "in_2", gmailThreadId: "thread_1" } },
     });
+  });
+
+  it("checks every connected inbox and keeps going when one fails", async () => {
+    listConnectedGmailAccounts.mockResolvedValue(["broken@gmail.com", "second@gmail.com"]);
+    gmailFetch.mockImplementation(async (path: string, _init: unknown, account: string) => {
+      if (account === "broken@gmail.com") throw new Error("Google refresh failed");
+      if (path.startsWith("/users/me/messages?")) return { messages: [{ id: "in_2", threadId: "thread_2" }] };
+      return { id: "in_2", threadId: "thread_2", snippet: "Thanks, interested", payload: { headers: [{ name: "From", value: "founder@example.com" }] } };
+    });
+
+    const { pollReplies } = await import("@/lib/gmail/replies");
+    await expect(pollReplies()).resolves.toEqual({ matched: 1, bounced: 0 });
+    expect(gmailFetch).toHaveBeenCalledWith(expect.stringContaining("/users/me/messages?"), {}, "second@gmail.com");
   });
 });

@@ -1,5 +1,5 @@
 import { prisma } from "@/server/db/client";
-import { gmailFetch } from "./client";
+import { gmailFetch, listConnectedGmailAccounts } from "./client";
 import { classifyInboundEmail } from "@/lib/email/bounce";
 
 type GmailListResponse = { messages?: Array<{ id: string; threadId: string }> };
@@ -10,8 +10,28 @@ type GmailMessage = {
   payload?: { headers?: Array<{ name: string; value: string }> };
 };
 
+/** Checks every connected inbox; one failing account doesn't stop the others. */
 export async function pollReplies(): Promise<{ matched: number; bounced: number }> {
-  const listed = await gmailFetch<GmailListResponse>("/users/me/messages?maxResults=200&labelIds=INBOX&q=newer_than:14d");
+  let matched = 0;
+  let bounced = 0;
+  for (const account of await listConnectedGmailAccounts()) {
+    try {
+      const result = await pollAccount(account);
+      matched += result.matched;
+      bounced += result.bounced;
+    } catch (err) {
+      console.error(`pollReplies ${account}:`, err instanceof Error ? err.message : err);
+    }
+  }
+  return { matched, bounced };
+}
+
+async function pollAccount(account: string): Promise<{ matched: number; bounced: number }> {
+  const listed = await gmailFetch<GmailListResponse>(
+    "/users/me/messages?maxResults=200&labelIds=INBOX&q=newer_than:14d",
+    {},
+    account,
+  );
   const items = listed.messages ?? [];
 
   let matched = 0;
@@ -27,6 +47,8 @@ export async function pollReplies(): Promise<{ matched: number; bounced: number 
 
     const full = await gmailFetch<GmailMessage>(
       `/users/me/messages/${item.id}?format=metadata&metadataHeaders=Subject&metadataHeaders=From&metadataHeaders=In-Reply-To&metadataHeaders=References`,
+      {},
+      account,
     );
     const headers = Object.fromEntries((full.payload?.headers ?? []).map((h) => [h.name.toLowerCase(), h.value]));
     const classification = classifyInboundEmail({

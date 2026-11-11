@@ -6,7 +6,8 @@ const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GMAIL_BASE = "https://gmail.googleapis.com/gmail/v1";
 const USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 
-let cachedToken: { value: string; expiresAt: number } | null = null;
+// Access tokens per connected account (lowercased email).
+const cachedTokens = new Map<string, { value: string; expiresAt: number }>();
 
 export const GMAIL_SCOPES = [
   "https://www.googleapis.com/auth/gmail.send",
@@ -53,7 +54,7 @@ export async function exchangeCodeForRefreshToken(code: string): Promise<{ refre
   }
 
   const accountEmail = await fetchAccountEmail(json.access_token);
-  cachedToken = { value: json.access_token, expiresAt: Date.now() + (json.expires_in ?? 3500) * 1000 };
+  cachedTokens.set(accountEmail.toLowerCase(), { value: json.access_token, expiresAt: Date.now() + (json.expires_in ?? 3500) * 1000 });
   return { refreshToken: json.refresh_token, accountEmail };
 }
 
@@ -66,10 +67,26 @@ export async function getConnectedGmailAccount(): Promise<{ accountEmail: string
   return cred;
 }
 
-export async function getAccessToken(): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now() + 30_000) return cachedToken.value;
-  const cred = await prisma.emailCredential.findFirst({ where: { provider: "GMAIL" }, orderBy: { updatedAt: "desc" } });
-  if (!cred) throw new Error("No Gmail credential - visit /api/gmail/authorize");
+export async function listConnectedGmailAccounts(): Promise<string[]> {
+  const creds = await prisma.emailCredential.findMany({
+    where: { provider: "GMAIL" },
+    orderBy: { createdAt: "asc" },
+    select: { accountEmail: true },
+  });
+  return creds.map((cred) => cred.accountEmail);
+}
+
+/** Access token for one account, or the most recently connected one when none is given. */
+export async function getAccessToken(accountEmail?: string): Promise<string> {
+  const cred = accountEmail
+    ? await prisma.emailCredential.findFirst({
+        where: { provider: "GMAIL", accountEmail: { equals: accountEmail, mode: "insensitive" } },
+      })
+    : await prisma.emailCredential.findFirst({ where: { provider: "GMAIL" }, orderBy: { updatedAt: "desc" } });
+  if (!cred) throw new Error(accountEmail ? `No Gmail credential for ${accountEmail} - visit /api/gmail/authorize` : "No Gmail credential - visit /api/gmail/authorize");
+  const cacheKey = cred.accountEmail.toLowerCase();
+  const cached = cachedTokens.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now() + 30_000) return cached.value;
 
   const body = new URLSearchParams({
     grant_type: "refresh_token",
@@ -84,12 +101,17 @@ export async function getAccessToken(): Promise<string> {
   });
   const json = (await resBody.json()) as { access_token?: string; expires_in?: number; error?: string; error_description?: string };
   if (statusCode !== 200 || !json.access_token) throw new Error(`Google refresh failed: ${JSON.stringify(json)}`);
-  cachedToken = { value: json.access_token, expiresAt: Date.now() + (json.expires_in ?? 3500) * 1000 };
+  cachedTokens.set(cacheKey, { value: json.access_token, expiresAt: Date.now() + (json.expires_in ?? 3500) * 1000 });
   return json.access_token;
 }
 
-export async function gmailFetch<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  const token = await getAccessToken();
+/** Gmail API call as `accountEmail`, or as the most recently connected account. */
+export async function gmailFetch<T>(
+  path: string,
+  init: { method?: string; body?: unknown } = {},
+  accountEmail?: string,
+): Promise<T> {
+  const token = await getAccessToken(accountEmail);
   const { statusCode, body } = await request(`${GMAIL_BASE}${path}`, {
     method: init.method ?? "GET",
     headers: { authorization: `Bearer ${token}`, "content-type": "application/json", accept: "application/json" },

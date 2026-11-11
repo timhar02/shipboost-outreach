@@ -131,6 +131,9 @@ model OutreachDraft {
   status        DraftStatus     @default(PENDING_REVIEW)
   createdAt     DateTime        @default(now())
   sentAt        DateTime?
+  /// Gmail account the draft went out from. Null on drafts sent before
+  /// multi-sender support; those count as the primary sender (SENDER_EMAIL).
+  senderEmail   String?
   events        OutreachEvent[]
   messages      EmailMessage[]
 }

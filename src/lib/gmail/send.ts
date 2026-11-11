@@ -1,5 +1,6 @@
 import { prisma } from "@/server/db/client";
-import { getConnectedGmailAccount, gmailFetch } from "./client";
+import { gmailFetch } from "./client";
+import { availableSenders, pickSender, primarySender } from "./senders";
 import { buildRawHtmlEmail } from "./mime";
 import { autoSendDailyCap } from "@/lib/auto-send/config";
 import { validateRecipientEmail } from "@/lib/email/validation";
@@ -48,13 +49,15 @@ export async function sendDraft(
     throw new Error(`recipient suppressed: ${draft.contact.suppressionReason ?? "unknown"}`);
   }
 
-  const connected = await getConnectedGmailAccount();
-  if (!connected) throw new Error("No Gmail credential - visit /api/gmail/authorize");
-
-  const fromAddress = process.env.SENDER_EMAIL;
-  if (!fromAddress) throw new Error("SENDER_EMAIL missing");
-  if (connected.accountEmail.toLowerCase() !== fromAddress.toLowerCase()) {
-    throw new Error(`SENDER_EMAIL (${fromAddress}) does not match connected Gmail account (${connected.accountEmail})`);
+  // A follow-up goes out from the account that sent its first email, so it
+  // lands in the same thread; first emails rotate across connected senders.
+  const fromAddress = draft.parentDraft
+    ? (draft.parentDraft.senderEmail ?? primarySender()).toLowerCase()
+    : (draft.senderEmail?.toLowerCase() ?? (await pickSender()));
+  const senders = await availableSenders();
+  if (!senders.length) throw new Error("No Gmail credential - visit /api/gmail/authorize");
+  if (!senders.includes(fromAddress)) {
+    throw new Error(`Sender ${fromAddress} is not a connected account listed in SENDER_EMAILS`);
   }
 
   if (!options.skipDailyCap) {
@@ -83,7 +86,7 @@ export async function sendDraft(
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const pixel = `<img src="${appUrl}/api/pixel/${draft.id}" width="1" height="1" alt="" style="display:block">`;
   const bodyHtml = draft.body.includes("</body>") ? draft.body.replace("</body>", `${pixel}</body>`) : draft.body + pixel;
-  const replyContext = await getReplyContext(draft.parentDraft?.messages[0]);
+  const replyContext = await getReplyContext(draft.parentDraft?.messages[0], fromAddress);
 
   const raw = buildRawHtmlEmail({
     from: fromAddress,
@@ -93,10 +96,14 @@ export async function sendDraft(
     headers: replyContext.headers,
   });
 
-  const res = await gmailFetch<GmailSendResponse>("/users/me/messages/send", {
-    method: "POST",
-    body: replyContext.threadId ? { raw, threadId: replyContext.threadId } : { raw },
-  });
+  const res = await gmailFetch<GmailSendResponse>(
+    "/users/me/messages/send",
+    {
+      method: "POST",
+      body: replyContext.threadId ? { raw, threadId: replyContext.threadId } : { raw },
+    },
+    fromAddress,
+  );
 
   if (!res.id || !res.threadId) {
     await prisma.outreachDraft.update({ where: { id: draftId }, data: { status: "FAILED" } });
@@ -104,7 +111,10 @@ export async function sendDraft(
   }
 
   await prisma.$transaction([
-    prisma.outreachDraft.update({ where: { id: draftId }, data: { status: "SENT", sentAt: new Date() } }),
+    prisma.outreachDraft.update({
+      where: { id: draftId },
+      data: { status: "SENT", sentAt: new Date(), senderEmail: fromAddress },
+    }),
     prisma.emailMessage.create({
       data: {
         draftId,
@@ -122,11 +132,12 @@ export async function sendDraft(
 }
 
 async function getReplyContext(
-  parentMessage?: { providerMessageId: string; providerThreadId: string | null },
+  parentMessage: { providerMessageId: string; providerThreadId: string | null } | undefined,
+  accountEmail: string,
 ): Promise<ReplyContext> {
   if (!parentMessage?.providerThreadId) return { headers: {} };
 
-  const parentHeaders = await getParentMessageHeaders(parentMessage.providerMessageId);
+  const parentHeaders = await getParentMessageHeaders(parentMessage.providerMessageId, accountEmail);
   const parentMessageId = parentHeaders["message-id"];
   const references = [parentHeaders.references, parentMessageId].filter(Boolean).join(" ");
 
@@ -139,10 +150,12 @@ async function getReplyContext(
   };
 }
 
-async function getParentMessageHeaders(providerMessageId: string): Promise<Record<string, string>> {
+async function getParentMessageHeaders(providerMessageId: string, accountEmail: string): Promise<Record<string, string>> {
   try {
     const metadata = await gmailFetch<GmailMessageMetadata>(
       `/users/me/messages/${providerMessageId}?format=metadata&metadataHeaders=Message-ID&metadataHeaders=References`,
+      {},
+      accountEmail,
     );
     return Object.fromEntries(
       (metadata.payload?.headers ?? [])

@@ -9,6 +9,7 @@ import {
 } from "./config";
 import { followUpsEnabled } from "@/lib/pipeline/process-follow-ups";
 import { launchPriorityTiers } from "@/lib/sources/priority";
+import { NoSenderCapacityError } from "@/lib/gmail/senders";
 
 const CONVERSION_BLOCK_STATUSES = ["MATCHED_DOMAIN", "MATCHED_EMAIL", "POSSIBLE", "CONFIRMED"] as const;
 
@@ -251,6 +252,8 @@ async function runLane(config: LaneConfig, blocked: BlockedRecipients, now: Date
     try {
       await sendDraft(draft.id, { skipDailyCap: true });
     } catch (err) {
+      // Every inbox is at its daily cap: stop this lane until tomorrow.
+      if (err instanceof NoSenderCapacityError) break;
       if (!isPermanentDraftFailure(err)) throw err;
       await prisma.outreachDraft.update({ where: { id: draft.id }, data: { status: "FAILED" } });
       failedDraftIds.push(draft.id);
