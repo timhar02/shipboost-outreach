@@ -47,7 +47,7 @@ describe("runAutoSend", () => {
     draftUpdate.mockResolvedValue({});
   });
 
-  it("sends ScrollLaunch and Nick Launches drafts before older drafts from other sources", async () => {
+  it("sends priority-source drafts before older drafts from other sources", async () => {
     draftCount.mockImplementation(async ({ where }) => (where.status === "SENT" ? 0 : 2));
     draftFindFirst.mockImplementation(async ({ where }) => {
       if (where.parentDraftId !== null) return null;
@@ -68,7 +68,7 @@ describe("runAutoSend", () => {
       .filter((where) => where.parentDraftId === null)
       .map((where) => where.contact.launch);
     expect(firstLaneTiers[0]).toMatchObject({
-      source: { enabled: true, kind: { in: ["SCROLLLAUNCH", "NICK_LAUNCHES"] } },
+      source: { enabled: true, kind: { in: expect.arrayContaining(["SCROLLLAUNCH", "NICK_LAUNCHES", "THESAASDIR", "NOONLAUNCH"]) } },
       OR: [{ raw: { path: ["premiumListing"], equals: true } }, { raw: { path: ["featured"], equals: true } }],
     });
   });

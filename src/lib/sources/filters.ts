@@ -13,6 +13,11 @@ const SKIP_HOSTS = [
   "linkedin.com",
   "facebook.com",
   "instagram.com",
+  // App marketplaces: the email scraper would find the marketplace's address.
+  "apps.shopify.com",
+  "addons.mozilla.org",
+  "microsoftedge.microsoft.com",
+  "gumroad.com",
 ];
 
 const TAGLINE_DENY = [

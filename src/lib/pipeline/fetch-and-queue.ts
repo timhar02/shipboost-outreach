@@ -6,6 +6,7 @@ import { StartupBaseSource } from "@/lib/sources/startupbase";
 import { LaunchingNextSource } from "@/lib/sources/launching-next";
 import { ScrollLaunchSource } from "@/lib/sources/scrolllaunch";
 import { NickLaunchesSource } from "@/lib/sources/nick-launches";
+import { HTML_BOARDS, HtmlBoardSource } from "@/lib/sources/html-boards";
 
 /**
  * Lightweight daily fetch: pulls launches from each source and persists them
@@ -31,6 +32,7 @@ const SOURCES = [
   new LaunchingNextSource(),
   new ScrollLaunchSource(),
   new NickLaunchesSource(),
+  ...HTML_BOARDS.map((config) => new HtmlBoardSource(config)),
 ];
 
 /**

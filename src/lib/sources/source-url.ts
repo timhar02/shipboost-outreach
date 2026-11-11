@@ -52,6 +52,14 @@ export function sourceUrl(
     case "NICK_LAUNCHES":
       if (r && typeof r.productUrl === "string") return r.productUrl;
       return null;
+    case "THESAASDIR":
+    case "LAUNCHNEST":
+    case "LIFTOFF":
+    case "SAASBISON":
+    case "THELAUNCHDIRECTORY":
+    case "NOONLAUNCH":
+      if (r && typeof r.listingUrl === "string") return r.listingUrl;
+      return null;
     case "FOUNDRLIST":
     case "PEERLIST":
       return null;
@@ -76,5 +84,11 @@ export function sourceLabel(kind: SourceKind): string {
     case "LAUNCHING_NEXT": return "Launching Next";
     case "SAASHUB": return "SaaSHub";
     case "NICK_LAUNCHES": return "Nick Launches";
+    case "THESAASDIR": return "TheSaaSDir";
+    case "LAUNCHNEST": return "LaunchNest";
+    case "LIFTOFF": return "LiftOff";
+    case "SAASBISON": return "SaaSBison";
+    case "THELAUNCHDIRECTORY": return "The Launch Directory";
+    case "NOONLAUNCH": return "Noonlaunch";
   }
 }

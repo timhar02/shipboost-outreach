@@ -3,9 +3,19 @@ import type { Prisma, SourceKind } from "@prisma/client";
 /**
  * Sources whose launches jump the queue, both when scraping for an email and
  * when auto-sending. Their founders already pay for launches (ScrollLaunch
- * `premiumListing`, Nick Launches `featured`), so they are the warmest leads.
+ * `premiumListing`; `featured` for Nick Launches and the young HTML boards),
+ * so they are the warmest leads.
  */
-export const PRIORITY_SOURCE_KINDS: SourceKind[] = ["SCROLLLAUNCH", "NICK_LAUNCHES"];
+export const PRIORITY_SOURCE_KINDS: SourceKind[] = [
+  "SCROLLLAUNCH",
+  "NICK_LAUNCHES",
+  "THESAASDIR",
+  "LAUNCHNEST",
+  "LIFTOFF",
+  "SAASBISON",
+  "THELAUNCHDIRECTORY",
+  "NOONLAUNCH",
+];
 
 const PAID_LAUNCH: Prisma.LaunchWhereInput[] = [
   { raw: { path: ["premiumListing"], equals: true } },

@@ -19,7 +19,9 @@ function respond(payload: unknown, statusCode = 200) {
   return { statusCode, body: { json: async () => payload, dump: async () => {} } };
 }
 
-beforeEach(() => requestMock.mockReset());
+beforeEach(() => {
+  requestMock.mockReset();
+});
 
 describe("isoWeekOf / isoWeeksSince", () => {
   it("uses Monday-start ISO weeks, including year boundaries", () => {

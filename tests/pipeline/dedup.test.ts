@@ -41,6 +41,26 @@ vi.mock("@/lib/sources/launching-next", () => ({
   },
 }));
 
+vi.mock("@/lib/sources/scrolllaunch", () => ({
+  ScrollLaunchSource: class {
+    kind = "SCROLLLAUNCH" as const;
+    async fetchSince() { return []; }
+  },
+  fetchScrollLaunchMakerFirstName: async () => undefined,
+}));
+
+vi.mock("@/lib/sources/nick-launches", () => ({
+  NickLaunchesSource: class {
+    kind = "NICK_LAUNCHES" as const;
+    async fetchSince() { return []; }
+  },
+}));
+
+vi.mock("@/lib/sources/html-boards", () => ({
+  HTML_BOARDS: [],
+  HtmlBoardSource: class {},
+}));
+
 vi.mock("@/lib/scrape/extract-email", () => ({
   extractEmail: vi.fn().mockResolvedValue({ email: "sarah@trywavefly.com", name: "Sarah", source: "ABOUT_PAGE" }),
 }));

@@ -23,6 +23,12 @@ export interface LaunchSource {
     | "PITCHWALL"
     | "LAUNCHING_NEXT"
     | "SAASHUB"
-    | "NICK_LAUNCHES";
+    | "NICK_LAUNCHES"
+    | "THESAASDIR"
+    | "LAUNCHNEST"
+    | "LIFTOFF"
+    | "SAASBISON"
+    | "THELAUNCHDIRECTORY"
+    | "NOONLAUNCH";
   fetchSince(date: Date): Promise<RawLaunch[]>;
 }
