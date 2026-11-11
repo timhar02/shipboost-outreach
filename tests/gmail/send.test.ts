@@ -128,6 +128,11 @@ describe("sendDraft", () => {
       where: { id: "draft_1" },
       data: { status: "SENT", sentAt: expect.any(Date), senderEmail: "tim.personal@gmail.com" },
     });
+    const raw = gmailFetch.mock.calls.find(([path]) => path === "/users/me/messages/send")?.[1]?.body.raw as string;
+    const sent = Buffer.from(raw.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+    expect(sent).toContain("<p>Hello</p>");
+    expect(sent).not.toContain("/api/pixel/");
+    expect(sent).not.toMatch(/<img[^>]+width="1"/);
     expect(messageCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({
         draftId: "draft_1",

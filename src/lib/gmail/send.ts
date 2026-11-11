@@ -83,16 +83,15 @@ export async function sendDraft(
     throw new Error(`recipient validation failed: ${validation.reason}`);
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  const pixel = `<img src="${appUrl}/api/pixel/${draft.id}" width="1" height="1" alt="" style="display:block">`;
-  const bodyHtml = draft.body.includes("</body>") ? draft.body.replace("</body>", `${pixel}</body>`) : draft.body + pixel;
   const replyContext = await getReplyContext(draft.parentDraft?.messages[0], fromAddress);
 
   const raw = buildRawHtmlEmail({
     from: fromAddress,
     to: draft.contact.email,
     subject: draft.subject,
-    html: bodyHtml,
+    // No open-tracking pixel: it is a spam signal for cold email, and image
+    // proxies (Gmail, Apple) make the opens it reports meaningless.
+    html: draft.body,
     headers: replyContext.headers,
   });
 
