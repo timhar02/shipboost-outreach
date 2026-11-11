@@ -2,10 +2,11 @@ import { prisma } from "@/server/db/client";
 import { extractEmail } from "@/lib/scrape/extract-email";
 import { extractContext } from "@/lib/scrape/extract-context";
 import { jitter } from "@/lib/scrape/fetch-html";
-import { templates } from "@/lib/draft/templates";
+import { templatesFor } from "@/lib/draft/templates";
+import { sourceLabel } from "@/lib/sources/source-url";
 import { hybridTemplates } from "@/lib/draft/hybrid-templates";
 import { selectTemplate } from "@/lib/draft/select";
-import { renderTemplate, type RenderVars } from "@/lib/draft/render";
+import { launchWhen, renderTemplate, type RenderVars } from "@/lib/draft/render";
 import { personalize } from "@/lib/draft/personalize";
 import type { RawLaunch } from "@/lib/sources/types";
 import { fetchScrollLaunchMakerFirstName } from "@/lib/sources/scrolllaunch";
@@ -165,10 +166,12 @@ export async function processLaunch(
     }
   }
 
-  // Static-template path (default, also the LLM fallback).
-  const eligible = hit.name ? templates : templates.filter((t) => t.key.endsWith("-noname"));
-  const pool = eligible.length ? eligible : templates;
-  const tmpl = selectTemplate(domain, pool);
+  // Static-template path (default, also the LLM fallback). Founders who paid
+  // for a launch on another board get the paid-launch angles.
+  const launchRaw = raw.raw as { premiumListing?: unknown; featured?: unknown } | null;
+  const paidLaunch = launchRaw?.premiumListing === true || launchRaw?.featured === true;
+  const tmpl = selectTemplate(domain, templatesFor({ paidLaunch, hasName: Boolean(hit.name) }));
+  const postalAddress = process.env.SENDER_POSTAL_ADDRESS?.trim();
 
   const rendered = renderTemplate(tmpl, {
     first_name: hit.name,
@@ -177,6 +180,9 @@ export async function processLaunch(
     website_domain: domain,
     sender_first_name: senderFirstName,
     shipboost_dr: shipboostDr,
+    board: sourceLabel(sourceKind),
+    launch_when: launchWhen(raw.launchedAt),
+    postal_line: postalAddress ? `<br/>${postalAddress}` : "",
   });
 
   const draft = await prisma.outreachDraft.create({
@@ -190,7 +196,6 @@ export async function processLaunch(
   });
 
   await markLaunchProcessed(launch.id, "DRAFT_CREATED");
-  void sourceKind;
   return { kind: "DRAFT_CREATED", draftId: draft.id, contactEmail: contact.email, usedLlm };
 }
 
