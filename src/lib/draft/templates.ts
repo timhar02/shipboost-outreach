@@ -14,15 +14,15 @@ const PAID_ANGLES: Angle[] = [
     key: "out-v5-paid-after-spot",
     subject: "{{product_name}} after {{board}}",
     body: `<p>Saw {{product_name}} took a featured launch on {{board}} {{launch_when}}.</p>
-<p>Launch traffic usually lasts a day or two. What keeps sending people later is a page Google and ChatGPT can find when someone looks for what you do.</p>
-<p>I write short, hand-written articles about new SaaS products on the ShipBoost blog. For ${PRICE}, paid once, {{product_name}} gets one, a launch week you pick, and a permanent listing linking to {{website_domain}}.</p>
+<p>Launch traffic usually lasts a day or two. What keeps sending people later is a page that shows up when your buyers search for what you do.</p>
+<p>For each Premium launch I research those searches and write a full article around them on the ShipBoost blog. For ${PRICE}, paid once, {{product_name}} gets one, a launch week you pick, and a permanent listing linking to {{website_domain}}.</p>
 <p>Want me to write one for {{product_name}}?</p>`,
   },
   {
     key: "out-v5-paid-price",
     subject: `a ${PRICE} article for {{product_name}}`,
     body: `<p>You paid for a featured spot on {{board}} for {{product_name}}, so you know how launch spots work. Most cost $30 to $50 for a week near the top.</p>
-<p>ShipBoost Premium is ${PRICE}, paid once. It includes a hand-written article about {{product_name}} on our blog that stays up after the week ends, and a permanent link to {{website_domain}}.</p>
+<p>ShipBoost Premium is ${PRICE}, paid once. It includes a full article about {{product_name}} on our blog, written around keywords your buyers search, that stays up after the week ends, and a permanent link to {{website_domain}}.</p>
 <p>Would that be useful for {{product_name}}?</p>`,
   },
 ];
@@ -33,14 +33,14 @@ const LAUNCH_ANGLES: Angle[] = [
     key: "out-v5-week-two",
     subject: "week two for {{product_name}}",
     body: `<p>{{product_name}} went up on {{board}} {{launch_when}}. Launch traffic usually fades after a day or two, and then the board moves on.</p>
-<p>I write short articles about new SaaS products on the ShipBoost blog, so each one has a page that keeps getting found after launch week. For ${PRICE}, paid once, {{product_name}} gets one plus a permanent listing linking to {{website_domain}}.</p>
+<p>For each Premium launch I research what that product's buyers search for, then write a full article around it on the ShipBoost blog, so there's a page that can keep getting found after launch week. For ${PRICE}, paid once, {{product_name}} gets one plus a permanent listing linking to {{website_domain}}.</p>
 <p>Want me to write one?</p>`,
   },
   {
     key: "out-v5-chatgpt",
     subject: "does chatgpt know {{product_name}}?",
     body: `<p>Ask ChatGPT for the best tool for what {{product_name}} does. Does it come up?</p>
-<p>AI answers tend to draw on pages outside a product's own site that describe it. A hand-written article on the ShipBoost blog gives {{product_name}} one of those, with a permanent link to {{website_domain}}. It's ${PRICE}, paid once, and you pick your launch week.</p>
+<p>AI answers tend to draw on pages outside a product's own site that describe it. A full, keyword-researched article on the ShipBoost blog gives {{product_name}} one of those, with a permanent link to {{website_domain}}. It's ${PRICE}, paid once, and you pick your launch week.</p>
 <p>Want me to write it?</p>`,
   },
 ];
