@@ -21,7 +21,19 @@ export function configuredSenders(): string[] {
   return [...new Set(list.split(",").map((email) => email.trim().toLowerCase()).filter(Boolean))];
 }
 
-export function perSenderDailyCap(): number {
+/**
+ * Daily cap for one sender: AUTO_SEND_SENDER_CAPS ("a@x.com:8,b@y.com:15")
+ * overrides AUTO_SEND_PER_SENDER_DAILY_CAP (default 25), so new inboxes can
+ * start low while they warm up.
+ */
+export function perSenderDailyCap(sender?: string): number {
+  if (sender) {
+    for (const entry of (process.env.AUTO_SEND_SENDER_CAPS ?? "").split(",")) {
+      const [email, cap] = entry.split(":").map((part) => part.trim());
+      const parsed = Number.parseInt(cap ?? "", 10);
+      if (email?.toLowerCase() === sender.toLowerCase() && Number.isFinite(parsed) && parsed >= 0) return parsed;
+    }
+  }
   const parsed = Number.parseInt(process.env.AUTO_SEND_PER_SENDER_DAILY_CAP ?? "", 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 25;
 }
@@ -57,8 +69,7 @@ export async function pickSender(now = new Date()): Promise<string> {
   const senders = await availableSenders();
   if (!senders.length) throw new Error("No Gmail credential - visit /api/gmail/authorize");
   const counts = await sentTodayBySender(senders, now);
-  const cap = perSenderDailyCap();
-  const open = senders.filter((sender) => (counts.get(sender) ?? 0) < cap);
+  const open = senders.filter((sender) => (counts.get(sender) ?? 0) < perSenderDailyCap(sender));
   if (!open.length) throw new NoSenderCapacityError();
   return open.sort((a, b) => (counts.get(a) ?? 0) - (counts.get(b) ?? 0))[0];
 }

@@ -52,6 +52,7 @@ describe("sendDraft", () => {
     process.env.SENDER_EMAIL = "tim.personal@gmail.com";
     delete process.env.SENDER_EMAILS;
     delete process.env.AUTO_SEND_PER_SENDER_DAILY_CAP;
+    delete process.env.AUTO_SEND_SENDER_CAPS;
     draftCount.mockResolvedValue(0);
     process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
     findUniqueOrThrow.mockResolvedValue(draft);
@@ -148,6 +149,20 @@ describe("sendDraft", () => {
     await sendDraft("draft_1", { skipDailyCap: true });
 
     expect(gmailFetch).toHaveBeenCalledWith("/users/me/messages/send", expect.anything(), "second@gmail.com");
+  });
+
+  it("skips a warming-up inbox once it reaches its own lower cap", async () => {
+    tx.mockResolvedValue(undefined);
+    process.env.SENDER_EMAILS = "tim.personal@gmail.com,new@gmail.com";
+    process.env.AUTO_SEND_SENDER_CAPS = "new@gmail.com:3";
+    listConnectedGmailAccounts.mockResolvedValue(["tim.personal@gmail.com", "new@gmail.com"]);
+    const sentToday: Record<string, number> = { "tim.personal@gmail.com": 10, "new@gmail.com": 3 };
+    draftCount.mockImplementation(async (args) => sentToday[args?.where.OR?.find((o) => o.senderEmail)?.senderEmail ?? ""] ?? 0);
+    const { sendDraft } = await import("@/lib/gmail/send");
+
+    await sendDraft("draft_1", { skipDailyCap: true });
+
+    expect(gmailFetch).toHaveBeenCalledWith("/users/me/messages/send", expect.anything(), "tim.personal@gmail.com");
   });
 
   it("stops with NoSenderCapacityError when every sender is at its daily cap", async () => {
